@@ -34,10 +34,10 @@ Invariants
                   ``--all``; never a gate. A check that floods gets switched
                   off, which is how this repo's per-file-ignores came to exist.
   HYG005 (gate)   the discipline's duplicated artifacts stay IDENTICAL across
-                  their delivery homes — the portable twin in aither-skills,
-                  the bundled aither-adk pack, and the published pack template.
+                  their delivery homes — the portable twin in awskills,
+                  the bundled awdk pack, and the published pack template.
                   A drift between copies is the "duplicated source of truth"
-                  hazard code-like-david rule 11 calls active: editing one
+                  hazard awknowledge rule 11 calls active: editing one
                   copy silently orphans the others. Skipped for a layout that
                   does not carry a given home.
 
@@ -45,7 +45,7 @@ A probe that cannot read its sources exits 2, never 0 — silence is not a pass.
 Use ``--self-test`` to prove it can still fail (it points the reference set at
 a nonexistent file and asserts the gate goes red).
 
-Portable twin lives at ``aither-skills/tools/check_checker_hygiene.py`` — same
+Portable twin lives at ``awskills/tools/check_checker_hygiene.py`` — same
 logic, layout-detected root (AitherOS monorepo, generic ``dev/tools`` install,
 or bare ``tools/``), so an external repo that adopted the discipline can run it.
 """
@@ -63,6 +63,7 @@ from pathlib import Path
 # Gate tools that are NOT named check_*.py but ARE gates. Used so a bare
 # mention in the rules or a run line is still recognised as a gate.
 NON_CHECK_GATES = {
+    "probe_service_schemes.py",
     "security_lint.py",
     "rotate_internal_secret.py",
     "repair_ps1_encoding.py",
@@ -84,8 +85,8 @@ ROUTINE_STR_RE = re.compile(
 
 # ── Repo layout: the ONLY monorepo-specific data, and it does not live here ──
 #
-# This module is a PORTABLE TWIN: byte-identical copies ship in aither-skills and
-# the aither-adk code-discipline pack, and the parity rule below asserts that
+# This module is a PORTABLE TWIN: byte-identical copies ship in awskills and
+# the awdk code-discipline pack, and the parity rule below asserts that
 # identity. Those two facts used to be in direct conflict with a third — the
 # published-tree path scan
 # forbids monorepo-internal paths in anything that ships, and this file hardcoded
@@ -168,11 +169,31 @@ _HYG005_BOUNDARY_EXEMPT: dict[str, str] = {
 }
 
 
+def _parity_normalise(raw: bytes) -> bytes:
+    """Content as the parity rule should judge it.
+
+    Line endings, because git hands one copy CRLF and the other LF depending on
+    .gitattributes -- a byte-exact compare measures the CHECKOUT, not the content.
+
+    And the `name:` FRONTMATTER KEY, because the two delivery homes disagree about
+    it by design: every skill under awskills carries `name:`, and every skill in the
+    adk pack omits it. Measured 2026-08-22, that one line was the ENTIRE difference
+    between both flagged pairs -- 2 diff lines each, on files of ~139 lines.
+
+    Exempting the pair was the obvious move and is the wrong one: an exemption would
+    hide any future drift in the skill BODY, which is the only thing this rule exists
+    to protect. Normalising the key that differs on purpose keeps the rule live for
+    everything that does not.
+    """
+    out = raw.replace(b"\r\n", b"\n")
+    return b"\n".join(ln for ln in out.split(b"\n") if not ln.startswith(b"name:"))
+
+
 def _hyg5(root: Path) -> list[str]:
     """Copy-parity violations across the discipline's delivery homes.
 
     A pair is asserted only when THIS layout carries both the canonical and the
-    copy's home: a generic adopted repo has neither aither-skills nor the adk
+    copy's home: a generic adopted repo has neither awskills nor the adk
     pack, so skipping there is correct, not a pass-by-omission.
     """
     violations: list[str] = []
@@ -202,8 +223,7 @@ def _hyg5(root: Path) -> list[str]:
         # Same decision, same reasoning, already taken once in this repo: gate 1zj's
         # TP018 normalises newlines for exactly this, having found byte-exact compare
         # called 69 files stale where 10 were real.
-        if canon.read_bytes().replace(b"\r\n", b"\n") != \
-                copy.read_bytes().replace(b"\r\n", b"\n"):
+        if _parity_normalise(canon.read_bytes()) != _parity_normalise(copy.read_bytes()):
             violations.append(f"{copy_rel} differs from canonical {canon_rel}")
     return violations
 
@@ -808,6 +828,22 @@ def _hyg4(trees: list[Path]) -> list[str]:
 _MARKER_NAME = "canonical-deploy-root"
 
 
+def _code_only(src: str) -> str:
+    """`src` with whole-line `#` comments removed.
+
+    FULL-LINE comments only, on purpose: a TRAILING `#` cannot be stripped without
+    tracking string literals, and a naive attempt would cut real code containing a
+    `#` in a string — hiding a genuine read, which is the expensive direction to be
+    wrong in. This is enough for the measured shape, a file whose only mention of
+    the marker is an explanatory comment.
+    """
+    return "".join(
+        line + "\n"
+        for line in (src or "").splitlines()
+        if not line.lstrip().startswith("#")
+    )
+
+
 def _marker_parse_violations(tools_dir: Path) -> list[str]:
     """HYG006 — a tool that reads the deploy-root marker WHOLE instead of line-wise.
 
@@ -841,7 +877,23 @@ def _marker_parse_violations(tools_dir: Path) -> list[str]:
             src = f.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        if _MARKER_NAME not in src:
+        # ASK THE CODE, NOT THE PROSE.
+        #
+        # This tested the RAW source, so a file that merely NAMES the marker in a
+        # comment became a candidate — and a file that never reads it has no
+        # comment-skipping idiom either, so it was then reported as parsing the
+        # marker wrongly. Measured 2026-08-22: `run_fleet_gates_from_host.py` was
+        # flagged for a ONE-LINE COMMENT explaining why a HOST_ONLY gate needs the
+        # marker. It does not read it at all. That is the failure this family names
+        # everywhere else — flagging the documentation of a defect as the defect —
+        # arriving inside the detector that names it.
+        #
+        # Only the MENTION test is de-commented. The idiom test below must keep
+        # reading raw `src`, because the idioms it looks for (`startswith("#")`,
+        # `split("#", 1)[0]`) contain a `#` themselves and any comment stripping
+        # would destroy them — turning a correct tool into a reported violation,
+        # which is the same cry-wolf failure pointed the other way.
+        if _MARKER_NAME not in _code_only(src):
             continue
         linewise = ('startswith("#")' in src or "startswith('#')" in src
                     or 'split("#", 1)[0]' in src or 'split("#",1)[0]' in src)
@@ -908,6 +960,171 @@ def _untracked_live(root: Path, names: set[str], resolve, trees) -> list[str]:
     return out
 
 
+#: HYG013 - agent-CONTEXT files that git is not tracking.
+#:
+#: HYG009 asks this of checkers. This asks it of the files that shape how every
+#: session BEHAVES: configuration files load into agent context, hook files
+#: gate real actions, skill files are invoked by name.
+#:
+#: Measured: configuration files that define session behavior were untracked
+#: on a working branch where many files had been deleted hours earlier, in a
+#: tree where 619 tracked files had been deleted hours earlier, one `git clean`
+#: from gone.
+#:
+#: The failure is INVISIBLE from the machine that wrote it: the rule loads, the
+#: hook fires, the skill resolves. It is absent in every clone and in CI, so a
+#: rule "everyone follows" is followed only here -- indistinguishable from a rule
+#: nobody wrote. Same lesson as HYG009: a file is not tracked because you wrote
+#: it, it is tracked when `git ls-files` says so.
+#:
+#: Pinned at 0 and ratcheting DOWN only. The fix for each finding is a COMMIT by
+#: whoever wrote it, never an entry here.
+#:
+#: Carried the id HYG011 before the develop catch-up merge (PR #5952); develop
+#: had independently used HYG011 for a different rule, so this took a free id.
+# Configuration directories that must remain tracked
+HYG013_DIRS = (".config", ".hooks", ".skills")
+HYG013_PIN = 0
+
+
+def _hyg13(root: Path) -> list[str] | None:
+    """HYG013 -- (paths), or None when git cannot answer (never an empty list).
+
+    None, never []: an empty list reads as "everything is tracked", which is the
+    most reassuring possible rendering of "I could not look" -- the exact shape
+    this rule exists to catch one directory over.
+    """
+    tracked = _tracked_set(root)
+    if tracked is None:
+        return None
+    found = []
+    for d in HYG013_DIRS:
+        base = root / d
+        if not base.is_dir():
+            continue
+        for f in base.rglob("*"):
+            if not f.is_file():
+                continue
+            rel = f.relative_to(root).as_posix()
+            if "__pycache__" in rel or rel.endswith(".pyc"):
+                continue
+            if rel not in tracked:
+                found.append(f"HYG013 {rel}: agent context on disk but NOT TRACKED by git")
+    return sorted(found)
+
+
+#: HYG014 - a container-engine probe that reports failure as an EMPTY COLLECTION.
+#:
+#: Measured 2026-08-22: SIX instances found by hand in one session, in the very
+#: tools written to catch fleet problems. Each turned "could not ask" into "the
+#: answer is zero", and for a gate those are opposite verdicts -- a zero is a
+#: clean fleet, an unanswered engine is a scan that never happened.
+#:
+#: Pinned at the measured backlog and ratcheting DOWN only: a gate that opens red
+#: gets bypassed rather than satisfied.
+#: 12 measured 2026-08-22 across 6 files, including FOUR in
+#: check_deploy_invariants.py. Ratchets DOWN only.
+HYG014_PIN = 12
+
+#: Trees whose job is to JUDGE the fleet. A false "nothing found" here is a
+#: silent gate, which is the failure this whole file exists to prevent.
+#:
+#: Held as path COMPONENTS, not joined literals: this file is mirrored verbatim
+#: into the public skills pack (HYG005 demands the copies match byte for byte),
+#: and a joined monorepo path is exactly what that pack's boundary scan rejects.
+#: Same idiom the rest of this module already uses.
+HYG014_TREES = (("AitherOS", "dev", "tools"), ("AitherOS", "lib", "routines"))
+
+_ENGINE_TOKENS = ("podman", "docker")
+_RC_TOKENS = ("returncode", "rc", "code", "status")
+
+
+def _hyg14_empty_literal(node: ast.AST) -> str | None:
+    """The name of the empty collection this returns, or None."""
+    if isinstance(node, ast.List) and not node.elts:
+        return "[]"
+    if isinstance(node, ast.Dict) and not node.keys:
+        return "{}"
+    if isinstance(node, ast.Tuple) and not node.elts:
+        return "()"
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        if node.func.id in ("set", "list", "dict", "tuple") and not node.args:
+            return f"{node.func.id}()"
+    return None
+
+
+def _hyg14_mentions_engine(fn: ast.AST) -> bool:
+    """Does this function shell a container-engine command?
+
+    A string CONSTANT equal to or starting with podman/docker anywhere in the
+    function. Deliberately loose on where it appears (argv list, f-string,
+    helper call) and strict on what it is, so a comment or a variable merely
+    NAMED docker does not qualify.
+    """
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Constant) and isinstance(n.value, str):
+            v = n.value.strip().lower()
+            if v in _ENGINE_TOKENS or v.startswith(("podman ", "docker ")):
+                return True
+    return False
+
+
+def _hyg14_is_rc_test(test: ast.AST) -> bool:
+    """Is this `if` testing a subprocess return code?"""
+    for n in ast.walk(test):
+        if isinstance(n, ast.Attribute) and n.attr in _RC_TOKENS:
+            return True
+        if isinstance(n, ast.Name) and n.id in _RC_TOKENS:
+            return True
+    return False
+
+
+def _hyg14(root) -> list[str] | None:
+    """HYG014 -- (findings), or None when no tree could be read.
+
+    None, never []: reporting "no violations" from a walk that read nothing is
+    the exact defect being checked, one level up.
+    """
+    findings: list[str] = []
+    scanned = 0
+    for parts in HYG014_TREES:
+        base = root
+        for seg in parts:
+            base = base / seg
+        if not base.is_dir():
+            continue
+        for f in sorted(base.rglob("*.py")):
+            try:
+                mod = ast.parse(f.read_text(encoding="utf-8", errors="replace"))
+            except (OSError, SyntaxError):
+                continue
+            scanned += 1
+            rel = f.relative_to(root).as_posix()
+            for fn in ast.walk(mod):
+                if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if not _hyg14_mentions_engine(fn):
+                    continue
+                for node in ast.walk(fn):
+                    if not isinstance(node, ast.If) or not _hyg14_is_rc_test(node.test):
+                        continue
+                    for stmt in node.body:
+                        if not isinstance(stmt, ast.Return) or stmt.value is None:
+                            continue
+                        lit = _hyg14_empty_literal(stmt.value)
+                        if lit:
+                            findings.append(
+                                f"HYG014 {rel}:{stmt.lineno} {fn.name}() returns "
+                                f"{lit} when the container engine fails - an empty "
+                                f"collection is indistinguishable from a real zero, "
+                                f"and for a gate those mean opposite things. Return "
+                                f"None or raise."
+                            )
+    if scanned == 0:
+        return None
+    return sorted(set(findings))
+
+
 def _collect(root: Path):
     """Read every source once and return the verdict buckets.
 
@@ -945,6 +1162,9 @@ def _collect(root: Path):
     # absent at runtime, which is the same outcome as a missing file.
     hyg3 = hyg3 + _hyg11(trees) + _hyg12(trees)
     hyg9 = _untracked_live(root, doc | wired, resolve, trees)
+    hyg13 = _hyg13(root)
+    hyg14 = _hyg14(root)
+    hyg15 = _hyg015(root)
 
     for name in sorted(doc | wired):
         found = resolve(name, trees)
@@ -982,7 +1202,8 @@ def _collect(root: Path):
     hyg7 = _hyg7(root, trees)
     hyg8 = _hyg8(trees)
     hyg10 = _hyg10(root)
-    return hyg1, hyg2, hyg3, hyg4, hyg5, hyg6, hyg7, hyg8, hyg9, hyg10, report
+    return (hyg1, hyg2, hyg3, hyg4, hyg5, hyg6, hyg7, hyg8, hyg9, hyg10,
+            hyg13, hyg14, hyg15, report)
 
 
 #: HYG010 — Veil test files reachable by NO gating CI invocation. Measured 2026-08-17:
@@ -1022,7 +1243,15 @@ def _collect(root: Path):
 #: React-free pure-logic suite.
 #: NOT widened further on purpose: the rest of the suite has known pre-existing
 #: failures (#895) and a red deploy-veil freezes aitherium.com.
-HYG010_UNGATED_PIN = 101
+#: RATCHETED 101 -> 63 on 2026-08-22. The win was already on disk and unbanked:
+#: the tool had been printing "ratchet: lower HYG010_UNGATED_PIN to 63 in this
+#: commit" on every run, and nobody could see it because this checker itself was
+#: DEAD (its layout declared no `rules_doc`, so it exited 2 before judging
+#: anything). An unratcheted win is silently given back -- which is the whole
+#: reason these pins ratchet DOWN only. Measured stable at 63 across consecutive
+#: runs before banking, because this tree churns under concurrent sessions and
+#: pinning to a number caught mid-flight would fabricate CI failures.
+HYG010_UNGATED_PIN = 15
 
 #: A step that tolerates its own failure is not a gate. Same reasoning as `continue-on-error`
 #: on a required check in check_workflow_parity (gate 1j).
@@ -1222,9 +1451,155 @@ def _hyg7(root: Path, trees: list[Path]) -> list[str]:
     return violations
 
 
+#: HYG015 -- pinned at ZERO because it CLOSED to zero in the commit that added it.
+#: A new orphaned assertion is a new hole, not a backlog item.
+HYG015_PIN = 0
+
+
+def _hyg015_banking_helpers(fn: "ast.FunctionDef") -> set:
+    """Names of nested helpers in `fn` that BANK a failure into a counter."""
+    names = set()
+    for sub in ast.walk(fn):
+        if isinstance(sub, ast.FunctionDef) and sub is not fn:
+            if any(isinstance(n, (ast.AugAssign, ast.Nonlocal))
+                   for n in ast.walk(sub)):
+                names.add(sub.name)
+    return names
+
+
+def _hyg015_counter_names(fn: "ast.FunctionDef", helpers: set) -> set:
+    """Names the banking helpers increment — the self-test's failure counter."""
+    names = set()
+    for sub in ast.walk(fn):
+        if not (isinstance(sub, ast.FunctionDef) and sub.name in helpers):
+            continue
+        for n in ast.walk(sub):
+            if isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name):
+                names.add(n.target.id)
+            elif isinstance(n, ast.Nonlocal):
+                names.update(n.names)
+    return names
+
+
+def _hyg015_verdict_lines(fn: "ast.FunctionDef", helpers: set) -> list:
+    """Lines where `fn` returns its COUNTER VERDICT (`if bad: return 1`).
+
+    🚨 THREE FALSE POSITIVES, AND THE RULE SHIPPED WITH ALL THREE.
+    A naive "any `return 1` in the function" reported 3 findings on 2026-08-23
+    and **every one was wrong** — it was about to send someone to "fix" three
+    perfectly healthy checkers, which is how a gate gets deleted rather than
+    satisfied ([[gate-invented-its-own-violations]] is this same trap seen from
+    the other side). Each cause is separate and each is guarded here:
+
+      1. `return True` MATCHES `value == 1` in Python (bool is an int
+         subclass), so `deploy_veil_pages_direct`'s nested predicate returning
+         True read as a failure verdict. Hence `type(...) is int`.
+      2. An early abort in an EXCEPT handler (`except DeadProbeError: print
+         FAIL; return 1`) is a legitimate DEAD exit, not a verdict — the arms
+         "after" it never run at all when it fires. Two checkers, and one of
+         them is `check_rented_gpu_reaped`, the GPU-billing gate.
+      3. A `return 1` inside a NESTED function is not `fn`'s verdict.
+
+    So a verdict is specifically: a `return <int 1>` inside an `if` whose test
+    mentions the counter the banking helper increments, in `fn`'s own body.
+    """
+    counters = _hyg015_counter_names(fn, helpers)
+    if not counters:
+        return []
+    nested = {id(n) for sub in ast.walk(fn)
+              if isinstance(sub, ast.FunctionDef) and sub is not fn
+              for n in ast.walk(sub)}
+    lines = []
+    for node in ast.walk(fn):
+        if not isinstance(node, ast.If) or id(node) in nested:
+            continue
+        if not any(isinstance(t, ast.Name) and t.id in counters
+                   for t in ast.walk(node.test)):
+            continue
+        for st in ast.walk(node):
+            if (isinstance(st, ast.Return) and isinstance(st.value, ast.Constant)
+                    and type(st.value.value) is int and st.value.value == 1):
+                lines.append(st.lineno)
+    return lines
+
+
+def _hyg015(root) -> "list[str] | None":
+    """HYG015 -- assertions stranded AFTER a self-test's failure verdict.
+
+    HYG001 asserts a ``--self-test`` EXISTS. It cannot ask whether the verdict
+    is HONEST, and that is a different hole: a self-test whose
+    ``if bad: return 1`` sits MID-FUNCTION banks every later ``ck(...)`` into a
+    counter nothing reads again, then falls through to an unconditional
+    "SELF-TEST PASSED" / return 0.
+
+    **Every ordinary run looks perfect** -- all arms print, the banner prints,
+    exit 0. The tell appears only under MUTATION: break the thing an orphaned
+    arm covers and you get ``FAIL <that arm>`` followed by ``SELF-TEST PASSED``
+    and exit 0. So the arms are present, printing, and unable to fail the run,
+    which is precisely the state a self-test exists to rule out.
+
+    Found 2026-08-23 in ``lambda_box.py`` while mutation-checking a new arm, and
+    the shape was not unique: three more checkers had it, stranding **44**
+    assertions between them -- including ``check_rented_gpu_reaped.py``
+    (11 arms), the gate that decides whether a rented GPU is still billing.
+
+    🚨 **The discriminator is what makes this shippable.** The obvious detector
+    -- "any call after the fail-return" -- reports **291 of 770** files here,
+    because ``print("SELF-TEST PASSED")`` legitimately follows every verdict. A
+    rule that floods gets switched off (that is how this repo's per-file-ignores
+    came to exist). Only a call to the function's OWN banking helper counts:
+    that narrows it to **3**.
+
+    Returns findings, or None when no tree could be read -- reporting "no
+    violations" from a walk that read nothing is this file's own subject.
+    """
+    findings: list[str] = []
+    scanned = 0
+    for parts in HYG014_TREES:
+        base = root
+        for seg in parts:
+            base = base / seg
+        if not base.is_dir():
+            continue
+        for f in sorted(base.rglob("*.py")):
+            try:
+                mod = ast.parse(f.read_text(encoding="utf-8", errors="replace"))
+            except (OSError, SyntaxError):
+                continue
+            scanned += 1
+            for fn in ast.walk(mod):
+                if not isinstance(fn, ast.FunctionDef):
+                    continue
+                if "self_test" not in fn.name:
+                    continue
+                helpers = _hyg015_banking_helpers(fn)
+                if not helpers:
+                    continue
+                fails = _hyg015_verdict_lines(fn, helpers)
+                if not fails:
+                    continue
+                first = min(fails)
+                orphan = [n.lineno for n in ast.walk(fn)
+                          if isinstance(n, ast.Expr)
+                          and isinstance(n.value, ast.Call)
+                          and isinstance(n.value.func, ast.Name)
+                          and n.value.func.id in helpers
+                          and n.lineno > first]
+                if orphan:
+                    findings.append(
+                        f"{f.name}::{fn.name}: verdict returns at L{first}, "
+                        f"{len(orphan)} assertion(s) after it (L{min(orphan)}"
+                        f"-L{max(orphan)}) can never fail the run — move the "
+                        f"`if bad: return 1` to the END")
+    if not scanned:
+        return None
+    return findings
+
+
 def run(root: Path, show_all: bool) -> int:
     try:
-        hyg1, hyg2, hyg3, hyg4, hyg5, hyg6, hyg7, hyg8, hyg9, hyg10, report = _collect(root)
+        (hyg1, hyg2, hyg3, hyg4, hyg5, hyg6, hyg7, hyg8, hyg9, hyg10,
+         hyg13, hyg14, hyg15, report) = _collect(root)
     except RuntimeError as exc:
         print(f"CANNOT RUN: {exc}", file=sys.stderr)
         return 2
@@ -1247,6 +1622,27 @@ def run(root: Path, show_all: bool) -> int:
         ("HYG010", f"jest tests run by NO gating CI invocation "
                    f"(pin {HYG010_UNGATED_PIN}, must shrink)",
          hyg10[0] if hyg10 else []),
+        # None means git could not answer -- reported as a violation rather
+        # than as "nothing untracked", because silence is not a pass.
+        ("HYG013", f"agent-context files git is NOT tracking "
+                   f"(pin {HYG013_PIN})",
+         (["HYG013 NOT VERIFIED: git could not answer for this tree"]
+          if hyg13 is None else
+          (hyg13 if len(hyg13) > HYG013_PIN else []))),
+        # Same contract as HYG013: None is a violation, not a clean run. That is
+        # the very defect this rule checks for, so reporting it any other way
+        # would make the rule an instance of itself.
+        ("HYG014", f"engine probes returning an EMPTY COLLECTION on failure "
+                   f"(pin {HYG014_PIN})",
+         (["HYG014 NOT VERIFIED: no tool tree could be read"]
+          if hyg14 is None else
+          (hyg14 if len(hyg14) > HYG014_PIN else []))),
+        # Same None-is-a-violation contract as HYG013/HYG014.
+        ("HYG015", f"self-test assertions stranded after the verdict — present, "
+                   f"printing, and UNABLE to fail the run (pin {HYG015_PIN})",
+         (["HYG015 NOT VERIFIED: no tool tree could be read"]
+          if hyg15 is None else
+          (hyg15 if len(hyg15) > HYG015_PIN else []))),
     ):
         if items:
             findings = True
@@ -1350,7 +1746,16 @@ def run(root: Path, show_all: bool) -> int:
         n_viol = (len(hyg1) + len(hyg2) + len(hyg3) + len(hyg5)
                   + len(hyg6) + len(hyg7)
                   + (len(hyg8) if len(hyg8) > _HYG008_PIN else 0)
-                  + (1 if len(hyg9) != HYG009_PIN else 0))
+                  + (1 if len(hyg9) != HYG009_PIN else 0)
+                  # HYG010 and HYG013 each set `findings` on their own and were
+                  # missing here, which is the same self-contradiction the note
+                  # above records -- HYG010 by omission since it was added,
+                  # HYG013 when it landed.
+                  + (len(hyg10[0]) if hyg10 and hyg10[0] else 0)
+                  + (1 if hyg13 is None
+                     else (len(hyg13) if len(hyg13) > HYG013_PIN else 0))
+                  + (1 if hyg14 is None
+                     else (len(hyg14) if len(hyg14) > HYG014_PIN else 0)))
         _safe_print(f"HYGIENE: FAIL ({n_viol} violation(s))")
         return 1
     _safe_print("HYGIENE: ok")
@@ -1459,6 +1864,9 @@ def self_test() -> int:
         LAYOUT["rules_doc"] = saved_rules_doc
 
 
+_NL15 = chr(10)
+
+
 def _self_test_body() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -1542,7 +1950,8 @@ def _self_test_body() -> int:
             'def self_test():\n    return 0\n',
             encoding="utf-8",
         )
-        hyg1, hyg2, hyg3, hyg4, hyg5, hyg6, _hyg7, _hyg8, hyg9, _hyg10, _ = _collect(root)
+        (hyg1, hyg2, hyg3, hyg4, hyg5, hyg6, _hyg7, _hyg8, hyg9, _hyg10,
+         hyg13, _hyg14_unused, _hyg15_unused, _) = _collect(root)
         if not any("check_shadowed_rule" in x and "HYG012" in x for x in hyg3):
             print("SELF-TEST FAIL: HYG012 did not fire on a module defining "
                   "`check_thing` twice at module level — the later def shadows the "
@@ -1556,6 +1965,250 @@ def _self_test_body() -> int:
             return 1
         _safe_print("  HYG012: ok - fires on a shadowed module-level def, silent on a "
                     "try/except fallback")
+
+        # HYG013: an untracked agent-context file must be NAMED, a tracked one
+        # must not be. Only the pair is evidence -- a rule that fires on
+        # everything passes the first half and is noise.
+        #
+        # Its OWN git repo: the shared self-test root is a plain tempdir, so
+        # _hyg13 correctly answers None there (fail-closed) and neither arm
+        # could be exercised.
+        with tempfile.TemporaryDirectory() as _t13:
+            _r13 = Path(_t13)
+            (_r13 / ".config").mkdir(parents=True)
+            (_r13 / ".config/tracked.md").write_text("t", encoding="utf-8")
+            (_r13 / ".config/untracked.md").write_text("u", encoding="utf-8")
+            for _cmd in (["git", "init", "-q"],
+                         ["git", "add", ".config/tracked.md"]):
+                subprocess.run(_cmd, cwd=_r13, capture_output=True, check=False)
+            _h13 = _hyg13(_r13)
+            if _h13 is None:
+                print("SELF-TEST FAIL: HYG013 could not ask git in a real repo",
+                      file=sys.stderr)
+                return 1
+            if not any("untracked.md" in x for x in _h13):
+                print("SELF-TEST FAIL: HYG013 did not name an UNTRACKED "
+                      "agent-context file -- a rule loaded on this machine and "
+                      "absent from every clone is the whole defect", file=sys.stderr)
+                return 1
+            if any("tracked.md" in x and "untracked.md" not in x for x in _h13):
+                print("SELF-TEST FAIL: HYG013 flagged a TRACKED file -- a rule "
+                      "that fires on everything gets switched off rather than "
+                      "satisfied", file=sys.stderr)
+                return 1
+        # -- HYG015 -------------------------------------------------------
+        # The real defect (lambda_box.py, 2026-08-23) and the THREE false
+        # positives that the first version produced. Only the pair is evidence:
+        # a rule that fires on every self-test would have sent someone to
+        # "fix" three healthy checkers.
+        with tempfile.TemporaryDirectory() as _t15:
+            _r15 = Path(_t15)
+            _d15 = _r15 / "AitherOS" / "dev" / "tools"
+            _d15.mkdir(parents=True)
+            _hdr = ("def self_test():" + _NL15 +
+                    "    bad = 0" + _NL15 +
+                    "    def ck(c, w):" + _NL15 +
+                    "        nonlocal bad" + _NL15 +
+                    "        if not c:" + _NL15 +
+                    "            bad += 1" + _NL15 +
+                    "    ck(True, 'first')" + _NL15)
+            # BAD: the counter verdict sits mid-function; later arms are orphaned.
+            (_d15 / "bad_tool.py").write_text(
+                _hdr +
+                "    if bad:" + _NL15 +
+                "        return 1" + _NL15 +
+                "    ck(True, 'stranded')" + _NL15 +
+                "    print('PASSED')" + _NL15 +
+                "    return 0" + _NL15, encoding="utf-8")
+            # GOOD: verdict last.
+            (_d15 / "good_tool.py").write_text(
+                _hdr +
+                "    ck(True, 'second')" + _NL15 +
+                "    if bad:" + _NL15 +
+                "        return 1" + _NL15 +
+                "    return 0" + _NL15, encoding="utf-8")
+            # FALSE-POSITIVE 1: an EXCEPT-handler abort is a DEAD exit, not a
+            # verdict -- the arms after it do not run when it fires.
+            (_d15 / "abort_tool.py").write_text(
+                _hdr +
+                "    try:" + _NL15 +
+                "        load()" + _NL15 +
+                "    except OSError:" + _NL15 +
+                "        return 1" + _NL15 +
+                "    ck(True, 'after an abort is fine')" + _NL15 +
+                "    if bad:" + _NL15 +
+                "        return 1" + _NL15 +
+                "    return 0" + _NL15, encoding="utf-8")
+            # FALSE-POSITIVE 2: `return True` == 1 in Python (bool is an int).
+            (_d15 / "bool_tool.py").write_text(
+                _hdr +
+                "    def pred():" + _NL15 +
+                "        return True" + _NL15 +
+                "    ck(pred(), 'a nested predicate is not a verdict')" + _NL15 +
+                "    if bad:" + _NL15 +
+                "        return 1" + _NL15 +
+                "    return 0" + _NL15, encoding="utf-8")
+            _h15 = _hyg015(_r15)
+            if _h15 is None:
+                print("SELF-TEST FAIL: HYG015 could not read its own fixture "
+                      "tree -- None is DEAD, and a rule that cannot look must "
+                      "never read as clean", file=sys.stderr)
+                return 1
+            if not any("bad_tool.py" in x for x in _h15):
+                print("SELF-TEST FAIL: HYG015 missed a verdict returning "
+                      "MID-FUNCTION with assertions stranded after it -- the "
+                      "exact lambda_box.py shape it was written for",
+                      file=sys.stderr)
+                return 1
+            for _n15, _why15 in (
+                    ("good_tool.py", "a verdict at the END is correct"),
+                    ("abort_tool.py", "an except-handler abort is a DEAD exit, "
+                                      "not a counter verdict"),
+                    ("bool_tool.py", "`return True` equals 1 in Python; a "
+                                     "nested predicate is not a verdict")):
+                if any(_n15 in x for x in _h15):
+                    print("SELF-TEST FAIL: HYG015 cried wolf on %s -- %s. A "
+                          "rule that floods gets switched off rather than "
+                          "satisfied." % (_n15, _why15), file=sys.stderr)
+                    return 1
+            _safe_print("  HYG015: ok - fires on a stranded arm, silent on a "
+                        "correct verdict, an except-abort and a bool return")
+
+        # ── HYG014 ──────────────────────────────────────────────────────────
+        # The defect: shell the engine, test the return code, hand back an empty
+        # collection. Downstream that is indistinguishable from a real zero, and
+        # for a gate the two mean opposite things.
+        with tempfile.TemporaryDirectory() as _t14:
+            _r14 = Path(_t14)
+            _d14 = _r14 / "AitherOS" / "dev" / "tools"
+            _d14.mkdir(parents=True)
+            (_d14 / "bad_probe.py").write_text(
+                "import subprocess\n"
+                "def list_them(engine):\n"
+                "    p = subprocess.run(['podman', 'ps', '-q'])\n"
+                "    if p.returncode != 0:\n"
+                "        return []\n"
+                "    return p.stdout.splitlines()\n",
+                encoding="utf-8")
+            # The two real fixes, which must stay SILENT or every repaired call
+            # site would be flagged and the rule would be switched off.
+            (_d14 / "good_none.py").write_text(
+                "import subprocess\n"
+                "def list_them(engine):\n"
+                "    p = subprocess.run(['podman', 'ps', '-q'])\n"
+                "    if p.returncode != 0:\n"
+                "        return None\n"
+                "    return p.stdout.splitlines()\n",
+                encoding="utf-8")
+            (_d14 / "good_raise.py").write_text(
+                "import subprocess\n"
+                "def list_them(engine):\n"
+                "    p = subprocess.run(['podman', 'ps', '-q'])\n"
+                "    if p.returncode != 0:\n"
+                "        raise RuntimeError('could not enumerate')\n"
+                "    return p.stdout.splitlines()\n",
+                encoding="utf-8")
+            # No engine anywhere: an ordinary empty return is not this defect.
+            (_d14 / "unrelated.py").write_text(
+                "def parse(text):\n"
+                "    rc = 1\n"
+                "    if rc != 0:\n"
+                "        return []\n"
+                "    return [text]\n",
+                encoding="utf-8")
+
+            _h14 = _hyg14(_r14)
+            if _h14 is None:
+                print("SELF-TEST FAIL: HYG014 could not read a tree it just built",
+                      file=sys.stderr)
+                return 1
+            if not any("bad_probe.py" in x for x in _h14):
+                print("SELF-TEST FAIL: HYG014 did not flag an engine probe "
+                      "returning [] on failure -- the whole defect", file=sys.stderr)
+                return 1
+            for _quiet in ("good_none.py", "good_raise.py", "unrelated.py"):
+                if any(_quiet in x for x in _h14):
+                    print(f"SELF-TEST FAIL: HYG014 flagged {_quiet} -- returning "
+                          "None, raising, and non-engine code are the FIXES and "
+                          "the out-of-scope case; a rule that fires on those gets "
+                          "switched off rather than satisfied", file=sys.stderr)
+                    return 1
+
+        # A walk that read nothing must answer None, never [] -- otherwise this
+        # rule is an instance of the very defect it checks for.
+        with tempfile.TemporaryDirectory() as _t14b:
+            if _hyg14(Path(_t14b)) is not None:
+                print("SELF-TEST FAIL: HYG014 returned a verdict for a tree with "
+                      "no sources -- 'I could not look' reported as 'nothing wrong'",
+                      file=sys.stderr)
+                return 1
+
+        # Fail CLOSED: a tree git cannot answer for yields None, never [].
+        with tempfile.TemporaryDirectory() as _t13b:
+            _r13b = Path(_t13b)
+            (_r13b / ".config").mkdir(parents=True)
+            (_r13b / ".config/x.md").write_text("x", encoding="utf-8")
+            if _hyg13(_r13b) is not None:
+                print("SELF-TEST FAIL: HYG013 answered for a NON-GIT tree instead "
+                      "of reporting it could not judge -- [] there would read as "
+                      "'everything is tracked'", file=sys.stderr)
+                return 1
+        _safe_print("  HYG013: ok - names an untracked agent-context file, silent on a "
+                    "tracked one, and DEAD rather than clean off-git")
+
+        # HYG006: fires on the real shape, and is silent on BOTH ways of being
+        # correct. It had NO self-test arm at all until 2026-08-22, which is how
+        # its false positive shipped: the mention test read RAW source, so a file
+        # that merely NAMES the marker in a `#` comment became a candidate -- and
+        # a file that never reads the marker has no comment-skipping idiom
+        # either, so it was then reported as parsing it wrongly.
+        # `run_fleet_gates_from_host.py` was flagged for a one-line comment.
+        # Only the pair-of-silences is evidence: a rule that fires on everything
+        # passes the "does it fire?" arm and is noise.
+        _nl6, _q6 = chr(10), chr(34)
+        with tempfile.TemporaryDirectory() as _t6:
+            _r6 = Path(_t6)
+            (_r6 / "check_whole_read.py").write_text(
+                '"""x"""' + _nl6 + _nl6
+                + "def root(p):" + _nl6
+                + "    return open(p / " + _q6
+                + ".canonical-deploy-root" + _q6
+                + ").read().strip()" + _nl6,
+                encoding="utf-8")
+            (_r6 / "check_linewise.py").write_text(
+                '"""x"""' + _nl6 + _nl6
+                + "def root(p):" + _nl6
+                + "    for line in open(p / " + _q6 + ".canonical-deploy-root" + _q6 + "):" + _nl6
+                + "        if line.startswith(" + _q6 + "#" + _q6 + "):" + _nl6
+                + "            continue" + _nl6
+                + "        return line.strip()" + _nl6,
+                encoding="utf-8")
+            (_r6 / "check_only_mentions.py").write_text(
+                '"""x"""' + _nl6 + _nl6
+                + "# HOST_ONLY: this gate needs the .canonical-deploy-root tree, not a" + _nl6
+                + "# worktree -- see the module docstring. It does not read the marker." + _nl6
+                + "def run():" + _nl6
+                + "    return []" + _nl6,
+                encoding="utf-8")
+            _h6 = _marker_parse_violations(_r6)
+            if not any("check_whole_read" in x for x in _h6):
+                print("SELF-TEST FAIL: HYG006 did not fire on a tool reading the "
+                      "deploy-root marker WHOLE -- the comment lines make the string "
+                      "a non-directory, so the tool falls back to the working tree "
+                      "and silently answers about the wrong tree", file=sys.stderr)
+                return 1
+            if any("check_linewise" in x for x in _h6):
+                print("SELF-TEST FAIL: HYG006 cried wolf on a tool that skips comment "
+                      "lines correctly", file=sys.stderr)
+                return 1
+            if any("check_only_mentions" in x for x in _h6):
+                print("SELF-TEST FAIL: HYG006 flagged a file that only NAMES the "
+                      "marker in a comment and never reads it -- flagging the "
+                      "documentation of a defect as the defect is how a gate gets "
+                      "deleted rather than satisfied", file=sys.stderr)
+                return 1
+        _safe_print("  HYG006: ok - fires on a whole-file read, silent on a line-wise "
+                    "parser and on a comment-only mention")
         if any("check_sentinel_parse" in x for x in hyg4):
             print("SELF-TEST FAIL: HYG004 fired on a None SENTINEL whose caller tests "
                   "`is None` and exits 2 — that is the correct idiom, not a swallow",
