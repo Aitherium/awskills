@@ -1,6 +1,6 @@
 ---
 name: aither-powered-coding
-description: Set up any coding agent (Claude Code, Cursor, Aider, Cline) to use AitherOS as its brain — with automatic model switching, 1272 MCP tools, managed agent dispatch, and transparent failover between DeepSeek/Kimi/local models/Anthropic. Supplements code-like-david with the AitherOS-specific infrastructure. Use when someone says "connect my agent to aither", "use aither as my backend", or "set up adk with claude code".
+description: Set up any coding agent (Claude Code, Cursor, Aider, Cline) to use AitherOS as its brain — with automatic model switching, 1272 MCP tools, managed agent dispatch, and transparent failover between DeepSeek/Kimi/local models/Anthropic. Supplements awknowledge with the AitherOS-specific infrastructure. Use when someone says "connect my agent to aither", "use aither as my backend", or "set up adk with claude code".
 ---
 
 # aither-powered-coding — make any coding agent use AitherOS as its brain
@@ -9,7 +9,7 @@ Your coding agent (Claude Code, Cursor, Aider) becomes 10x more capable when bac
 AitherOS: 1272 MCP tools, managed agent fleet, automatic model routing, transparent
 failover, and your own local GPU inference.
 
-This skill supplements [code-like-david](code-like-david.md) with AitherOS-specific setup.
+This skill supplements [awknowledge](awknowledge.md) with AitherOS-specific setup.
 
 ---
 
@@ -231,13 +231,13 @@ adk claude-model watch --daemon    # monitors for rate limits, auto-switches
 
 ---
 
-## Relationship to code-like-david
+## Relationship to awknowledge
 
-[code-like-david](code-like-david.md) teaches HOW to use a coding agent effectively
+[awknowledge](awknowledge.md) teaches HOW to use a coding agent effectively
 (prompt shape, live-proof gates, plan documents, memory). This skill teaches WHERE
 to point it — the infrastructure that makes it resilient:
 
-| code-like-david | aither-powered-coding |
+| awknowledge | aither-powered-coding |
 |----------------|----------------------|
 | Prompt discipline | Model switching |
 | Live-proof gates | MCP tool access |
@@ -245,5 +245,5 @@ to point it — the infrastructure that makes it resilient:
 | Memory scaffolding | Failover chain |
 | Compaction strategy | 1M context (no compaction) |
 
-Install both: `code-like-david` for the operating doctrine, `aither-powered-coding`
+Install both: `awknowledge` for the operating doctrine, `aither-powered-coding`
 for the infrastructure that backs it.
