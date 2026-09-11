@@ -123,12 +123,101 @@ def _build_layer_config(model, keep_fp_patterns: list[str]) -> tuple[dict, list[
     return layer_config, kept
 
 
+def _self_test() -> int:
+    """Prove the resolver handles every layout, including the one that broke."""
+    import tempfile
+
+    bad = 0
+
+    def ck(cond, what):
+        nonlocal bad
+        print(f"  {'ok  ' if cond else 'FAIL'} {what}")
+        if not cond:
+            bad += 1
+
+    # The real 2026-08-20 layout: weights one level down in a scheme-named dir.
+    root = Path(tempfile.mkdtemp())
+    nested = root / "stack-orch-v18-w4g128"
+    nested.mkdir()
+    (nested / "config.json").write_text("{}", encoding="utf-8")
+    got, was_nested = resolve_export_dir(root)
+    ck(got == nested and was_nested,
+       "a scheme-named subdirectory is resolved as the serve path -- printing "
+       "the -o dir here is the defect: it holds no config.json, so the "
+       "advertised serve command fails after a SUCCESSFUL quantization")
+
+    # Flat layout: -o itself is the model dir.
+    flat = Path(tempfile.mkdtemp())
+    (flat / "config.json").write_text("{}", encoding="utf-8")
+    got, was_nested = resolve_export_dir(flat)
+    ck(got == flat and not was_nested,
+       "a flat export still resolves to -o itself, and is not reported as "
+       "nested (a rule that rewrites correct output would be worse than none)")
+
+    # Ambiguous / empty: fall back rather than guess or raise.
+    amb = Path(tempfile.mkdtemp())
+    for name in ("a", "b"):
+        d = amb / name
+        d.mkdir()
+        (d / "config.json").write_text("{}", encoding="utf-8")
+    got, _ = resolve_export_dir(amb)
+    ck(got == amb,
+       "two candidate subdirectories fall back to -o rather than picking one "
+       "arbitrarily")
+
+    empty = Path(tempfile.mkdtemp())
+    got, _ = resolve_export_dir(empty)
+    ck(got == empty, "an empty output dir falls back without raising")
+
+    missing = Path(tempfile.mkdtemp()) / "does-not-exist"
+    got, _ = resolve_export_dir(missing)
+    ck(got == missing,
+       "an unreadable path returns the input instead of raising -- a "
+       "successful quantization must never end in a traceback from the "
+       "REPORTING step")
+
+    print()
+    if bad:
+        print(f"SELF-TEST FAILED ({bad})")
+        return 1
+    print("SELF-TEST PASSED")
+    return 0
+
+
+def resolve_export_dir(outdir: Path) -> tuple[Path, bool]:
+    """Return (dir a server must be pointed at, was_it_nested).
+
+    AutoRound's writer may place the model in a scheme-named SUBDIRECTORY of
+    ``-o`` (e.g. ``<out>/<model>-w4g128/``) rather than in ``-o`` itself. The
+    name encodes bits/group_size so it cannot be hardcoded; what identifies a
+    servable directory is that it holds ``config.json``.
+
+    Falls back to ``outdir`` when nothing is found or the choice is ambiguous,
+    so the caller still prints something and never raises on a successful
+    quantization -- but it reports the nesting so the user is not handed a path
+    that silently does not load.
+    """
+    try:
+        if (outdir / "config.json").is_file():
+            return outdir, False
+        subs = [d for d in sorted(outdir.iterdir())
+                if d.is_dir() and (d / "config.json").is_file()]
+    except OSError:
+        return outdir, False
+    if len(subs) == 1:
+        return subs[0], True
+    return outdir, False
+
+
 def main() -> int:
     p = argparse.ArgumentParser(
         description="Quantize an LLM to 4-bit with AutoRound (RTN by default).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("model", help="HF repo id or local path of the source model")
+    # nargs="?" so `--self-test` can run without a model. Presence is
+    # validated after the self-test dispatch, below.
+    p.add_argument("model", nargs="?",
+                   help="HF repo id or local path of the source model")
     p.add_argument("-o", "--output", help="Output dir for the quantized model")
     p.add_argument("--bits", type=int, default=4, help="Quant bits (default 4)")
     p.add_argument("--group-size", type=int, default=128,
@@ -149,9 +238,15 @@ def main() -> int:
                    help="device_map for loading (default 'auto' = CPU+GPU offload)")
     p.add_argument("--no-default-keep-fp", action="store_true",
                    help="Don't apply the built-in keep-fp defaults (advanced)")
+    p.add_argument("--self-test", action="store_true",
+                   help="prove the export-dir resolver still works, and exit")
     p.add_argument("--dry-run", action="store_true",
                    help="Print the plan and exit — no weight load, no write, no GPU")
     args = p.parse_args()
+    if args.self_test:
+        return _self_test()
+    if not args.model:
+        p.error("the following arguments are required: model")
 
     keep_fp = list(args.keep_fp)
     if not args.no_default_keep_fp:
@@ -187,6 +282,42 @@ def main() -> int:
         from auto_round import AutoRound
     except ImportError:
         _die("auto-round not installed. Install: pip install auto-round", 2)
+
+    # Export-format dependency, checked BEFORE any weights load.
+    #
+    # The `llm_compressor` export (our default) packs through
+    # `compressed_tensors.compressors.compress_module`. Without this check the
+    # run dies in immediate_pack -- after the full model load and every layer
+    # quantized -- which on an 8B model is minutes of work thrown away, and the
+    # error names a symbol rather than a missing install.
+    #
+    # The SYMBOL is what matters, not the import: compressed-tensors 0.12.2
+    # imports fine and has no compress_module, so a plain
+    # `import compressed_tensors` guard would pass and then fail at pack time
+    # exactly as before.
+    #
+    # The version advice is deliberately pinned rather than left open. A bare
+    # `pip install compressed-tensors` takes 0.18.0, which requires torch>=2.9
+    # and pulls the CUDA 13 wheel set; on a CUDA 12.x box that does not error,
+    # it just makes torch stop seeing the GPU, and the next run quantizes on
+    # CPU while reporting nothing wrong.
+    if args.format == "llm_compressor":
+        try:
+            from compressed_tensors.compressors import compress_module  # noqa: F401
+        except ImportError as e:
+            _die(
+                f"the '{args.format}' export needs compressed_tensors with "
+                f"compress_module ({e}).\n"
+                f"  Install:  pip install 'compressed-tensors==0.15.0'\n"
+                f"  Do NOT install it unpinned: the current release requires "
+                f"torch>=2.9 and pulls the CUDA 13 wheels, which silently "
+                f"costs you GPU visibility on a CUDA 12.x box (torch stops "
+                f"reporting cuda_available and quantization falls back to "
+                f"CPU).\n"
+                f"  Versions below 0.15.0 import but lack compress_module.\n"
+                f"  Or choose another export:  --format auto_round",
+                2,
+            )
 
     # Het-head guard — only the calibrated path is affected; RTN is safe.
     try:
@@ -233,9 +364,15 @@ def main() -> int:
         ar.quantize()
         ar.save_quantized(args.output, format=args.format)
 
+    serve_dir, nested = resolve_export_dir(Path(args.output))
     print(f"\nDone. Quantized model written to: {args.output}")
+    if nested:
+        # Say it plainly: the copy-pasteable line below is NOT `-o`, and a
+        # server pointed at `-o` finds no config.json.
+        print(f"  NOTE: the weights are in a subdirectory: {serve_dir}")
+        print(f"        point your server at THAT path, not at {args.output}")
     print("  Serve with vLLM:  vllm serve "
-          f"{args.output} --quantization awq_marlin")
+          f"{serve_dir} --quantization awq_marlin")
     return 0
 
 

@@ -49,7 +49,7 @@ Runners do **not** share a directory. Each instance needs its own tree, its own
 ```powershell
 # 1. copy the package (NOT the state — see the two traps below)
 New-Item -ItemType Directory E:\actions-runner-2 -Force
-Copy-Item D:\actions-runner\* E:\actions-runner-2 -Recurse -Force
+Copy-Item a runner directory\* E:\actions-runner-2 -Recurse -Force
 
 # 2. STRIP the inherited identity, or config.cmd refuses
 Get-ChildItem E:\actions-runner-2 -Force |

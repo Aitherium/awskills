@@ -45,8 +45,8 @@ adk mesh onboard --role worker           # join this box to the mesh
 adk mesh ls                              # see the peers your agents can reach
 ```
 
-The goal is a single, coherent substrate — **awdk / awnode / AitherConnect / AitherMesh +
-The goal is a single, coherent substrate — **aither-adk / AitherNode / Awconnect / AitherMesh +
+The goal is a single, coherent substrate — **awdk / awnode / awconnect / AitherMesh +
+The goal is a single, coherent substrate — **awdk / AitherNode / Awconnect / AitherMesh +
 OmniNode** — where standing up compute and having your agents use it is one motion, not two projects.
 
 ## Notes

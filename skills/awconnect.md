@@ -43,12 +43,12 @@ adk deploy connect              # set up the Awconnect browser extension
 
 ## Use it
 
-After connecting, the node appears in **portal.aitherium.com → Workstation**, and agents anywhere in
+After connecting, the node appears in **aitherium.com → Workstation**, and agents anywhere in
 your fleet can route to its inference and capabilities. `adk doctor` reports gateway + mesh health.
 
 ## Part of one substrate
 
-AitherConnect is the seam between a local box and the wider fabric: it links an
+awconnect is the seam between a local box and the wider fabric: it links an
 [awnode](awnode.md) to the control plane, lets [awdk](awdk.md) agents reach it,
 Awconnect is the seam between a local box and the wider fabric: it links an
 [AitherNode](aithernode.md) to the control plane, lets [awdk](awdk.md) agents reach it,

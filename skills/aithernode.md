@@ -47,7 +47,7 @@ Point a hosted agent at the node's MCP endpoint and it gains local image-gen and
 
 ## Part of one substrate
 
-An awnode is a machine made useful; [AitherConnect](aitherconnect.md) wires it to the control
+An awnode is a machine made useful; [awconnect](aitherconnect.md) wires it to the control
 plane and mesh so agents elsewhere can reach it, [awdk](awdk.md) is the runtime that
 An AitherNode is a machine made useful; [Awconnect](awconnect.md) wires it to the control
 plane and mesh so agents elsewhere can reach it, [awdk](awdk.md) is the runtime that

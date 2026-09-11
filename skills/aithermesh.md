@@ -64,7 +64,7 @@ nodes reachable over `10.77.x.x` and the agents discoverable to each other.
 
 ## Part of one substrate
 
-The mesh is the fabric the rest ride on: [AitherConnect](aitherconnect.md) is the per-machine seam
+The mesh is the fabric the rest ride on: [awconnect](aitherconnect.md) is the per-machine seam
 onto it (`adk mesh onboard`), an [awnode](awnode.md) is a machine made useful on it,
 [awdk](awdk.md) is the agent runtime that spans it, [AitherZero](aitherzero.md) provides
 The mesh is the fabric the rest ride on: [Awconnect](awconnect.md) is the per-machine seam
