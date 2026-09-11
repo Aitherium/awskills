@@ -22,7 +22,7 @@ tell you when it is wrong.
 [LAW 1](laws/01-a-rule-nothing-asserts-is-a-suggestion.md). The problem is almost
 never the model.
 
-**You are building the harness itself.** The nineteen laws are the whole point.
+**You are building the harness itself.** The twenty-three laws are the whole point.
 Read [Silence](#ii--silence) first — those five are the ones that cost the most
 per incident, because nothing tells you they happened.
 
@@ -55,7 +55,7 @@ should not be the one typing it. You do not type your standards. You install the
 
 ---
 
-## The nineteen laws
+## The twenty-three laws
 
 ### I · Enforcement
 *A standard that nothing checks is a preference. These four are how a preference
@@ -92,6 +92,7 @@ day goes.*
 14. [You wrote it; that does not mean it ships](laws/14-you-wrote-it-that-does-not-mean-it-ships.md)
 15. [Generate, never copy](laws/15-generate-never-copy.md)
 16. [The defect lives in the union](laws/16-the-defect-lives-in-the-union.md)
+20. [A platform you cannot ship to is not supported](laws/20-a-platform-you-cannot-ship-to-is-not-supported.md)
 
 ### V · Trust
 *Three patterns no linter will ever catch for you, because all three are semantic.*
@@ -99,6 +100,19 @@ day goes.*
 17. [Fail closed, then prove the happy path](laws/17-fail-closed-then-prove-the-happy-path.md)
 18. [Never trust the caller for an authorization decision](laws/18-never-trust-the-caller.md)
 19. [Count the closure, not the edge](laws/19-count-the-closure-not-the-edge.md)
+
+### VI · Configuration
+*A setting that does not survive a restart is not a setting. A decision made
+silently is not coordinated.*
+
+21. [A cap that does not survive a restart is not a cap](laws/21-a-cap-that-does-not-survive-a-restart-is-not-a-cap.md)
+22. [Coordinated decisions need a channel humans can read](laws/22-coordinated-decisions-need-a-channel-humans-can-read.md)
+
+### VII · Scaling
+*Resource constraints in complex distributed systems do not always couple the
+way they do in simple ones.*
+
+23. [A mixture-of-experts model has two budgets, not one](laws/23-a-mixture-of-experts-model-has-two-budgets-not-one.md)
 
 ---
 
@@ -123,4 +137,3 @@ be careful. That is the entire claim, and it is the only one worth making.
 ---
 
 *Part of [awskills](../README.md) — MIT licensed, free to fork and adapt.*
-*Part of [aither-skills](../README.md) — MIT licensed, free to fork and adapt.*

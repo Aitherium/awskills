@@ -63,7 +63,7 @@ system able to notice.
 
 | Skill | What it teaches |
 |---|---|
-| [`code-like-david`](skills/code-like-david.md) | **The doctrine.** 13 measured rules for running an agent at program scale: prompt shape, live-proof gates, plan documents as files not modes, persistent memory with an index, when to orchestrate vs stay solo, when to compact, how to route models. Installs itself into your rules/memory/plans directories without overwriting anything. |
+| [`awknowledge`](skills/awknowledge.md) | **The doctrine.** 13 measured rules for running an agent at program scale: prompt shape, live-proof gates, plan documents as files not modes, persistent memory with an index, when to orchestrate vs stay solo, when to compact, how to route models. Installs itself into your rules/memory/plans directories without overwriting anything. |
 | [`ramble-driven-development`](skills/ramble-driven-development.md) | **The prompt-shape law.** Median human prompt: **56 characters**. But the 5.9% over 1,000 chars carry **78% of everything typed**. Ramble to load intent, poke to steer, and put the precision in the harness — 90% of machine-written dispatches name a file path against 6% of human ones. Includes how to mine *your* transcripts, and the two filters that otherwise inflate your median by 33x. |
 
 ```bash
@@ -72,7 +72,7 @@ cd awskills
 bash scripts/install-awskills.sh          # Windows: pwsh -File scripts/Install-AitherSkills.ps1
 ```
 
-Then tell your agent: **"use the code-like-david skill"**.
+Then tell your agent: **"use the awknowledge skill"**.
 
 > **The one rule to take away if you read nothing else:** the careful, fully-specified
 > prompt still has to exist — you just shouldn't be the one typing it. Put your standards
@@ -325,7 +325,7 @@ to run a persistent node). If [awdk](https://github.com/Aitherium/awdk) is prese
 Verified end-to-end on a 12-core Linux box: clone → build → `NODE OK`, P2P discovery live. See
 [`skills/omninode-node.md`](skills/omninode-node.md). No credentials, no account, no central server.
 
-### 🧩 The Aither substrate — set up and use awdk, AwNode, AitherConnect, AitherZero & AitherMesh
+### 🧩 The Aither substrate — set up and use awdk, awnode, AitherConnect, AitherZero & AitherMesh
 
 Five skills for the coherent substrate the OmniNode node plugs into. Each is a "set it up, then use
 it" guide grounded in real commands — standing up compute and having your agents use it is one

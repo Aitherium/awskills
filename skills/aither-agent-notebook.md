@@ -52,7 +52,7 @@ adk notebook export <notebook_id> -o plan.ipynb        # open in VS Code / Jupyt
 ```
 
 A run pauses at any `checkpoint` cell; resolve the gate from
-**portal.aitherium.com → Notebooks** (approve / edit / reject), then it continues.
+**aitherium.com → Notebooks** (approve / edit / reject), then it continues.
 
 ### As agent tools (the ReAct loop)
 
@@ -84,7 +84,7 @@ a clear `"Genesis unavailable after N attempts"` rather than a raw gateway error
 
 ## Config & auth
 
-Point the tools at your Genesis with `AITHER_GENESIS_URL` (default `http://localhost:8001`).
+Point the tools at your Genesis with `AITHER_GENESIS_URL` (default `http://a local Genesis endpoint`).
 LLM/embeddings route through the governed gateway; the tools trust the internal CA — set
 `AITHER_TLS_VERIFY=false` only if you deliberately need to skip verification (never the
 default).

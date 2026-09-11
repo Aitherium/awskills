@@ -28,7 +28,7 @@ If you can't name both, it's REFERENCE. Write it down and move on.
 
 ## Phase 0 — Acquire into quarantine (never into the worktree)
 
-Unpack/clone **outside** `D:\AitherOS-Fresh`. This repo runs with hundreds of
+Unpack/clone **outside** `the working tree`. This repo runs with hundreds of
 uncommitted files, concurrent sessions committing every 2–5 min, and a failing D: drive
 — dropping a `node_modules`-bearing tree in the worktree is actively destructive.
 

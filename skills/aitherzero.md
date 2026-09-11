@@ -133,7 +133,7 @@ public one, verified against this repository.
 ## Part of one substrate
 
 AitherZero provisions the box; [awnode](awnode.md) makes its hardware usable,
-[AitherConnect](aitherconnect.md) wires it to the fleet, [awdk](awdk.md) is the runtime
+[awconnect](aitherconnect.md) wires it to the fleet, [awdk](awdk.md) is the runtime
 AitherZero provisions the box; [AitherNode](aithernode.md) makes its hardware usable,
 [Awconnect](awconnect.md) wires it to the fleet, [awdk](awdk.md) is the runtime
 that drives all of it, and [OmniNode](omninode-node.md) pools the results into one compute fabric.

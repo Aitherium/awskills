@@ -138,7 +138,7 @@ Use the first if OpenClaw is your daily driver. Use the second if `adk` is.
 | File | Purpose |
 |---|---|
 | `AGENTS.md` | project/agent context |
-| `SOUL.md` | persona and voice |
+| `SOUL.md | identity and voice |
 | `TOOLS.md` | tool usage guidance |
 
 Keep them short. They cost context on **every** turn, unlike skills — which load only when

@@ -119,6 +119,25 @@
 .PARAMETER DryRun
     Print what would launch without spawning anything.
 
+.PARAMETER Launcher
+    Command each tab runs in place of `claude`. Use a backend-profile launcher to
+    restore the whole set on a non-default backend: `cds` (DeepSeek flash), `cks`
+    (Kimi K3), `cas` (Anthropic, explicit). Validated before anything launches.
+
+.PARAMETER Menu
+    Force the key-driven picker (sessions AND a per-row backend). It is already
+    the default in a real terminal; this only matters when you want it despite a
+    redirected stdin.
+
+.PARAMETER NoMenu
+    Force the old one-line "1,3,5-7" text prompt instead of the picker.
+
+.PARAMETER LauncherMap
+    Per-session backends: `-LauncherMap "a55ecf8e=cds,491c925c=cas"`. Keys match
+    on session-id prefix (the 8 characters the listing shows are enough), longest
+    key wins, and anything unmatched falls back to -Launcher. Every launcher named
+    is validated before the first tab opens.
+
 .EXAMPLE
     pwsh -File Resume-ClaudeSessions.ps1
     Interactive picker of recent sessions; resume the ones you choose as WT tabs.
@@ -162,11 +181,92 @@ param(
     [string]$ExcludeSession,
     [switch]$DryRun,
 
+    # The command each tab runs instead of `claude`. Default keeps every existing
+    # caller on the default Anthropic backend. Pass a backend-profile launcher
+    # (`cds` = DeepSeek flash, `cks` = Kimi K3, `cas` = Anthropic; see
+    # .claude/skills/backend-switching/SKILL.md) to bring the whole restored set
+    # back on that backend. WHY THIS EXISTS (2026-09-10): the engine hardcoded
+    # `claude --resume <id>` at five sites, so a restore after a backend switch
+    # silently put every tab back on Anthropic while the owner believed the
+    # switch had been applied "across all sessions". A backend override is
+    # session-scoped BY DESIGN (never setx, never settings.json), so the launcher
+    # is the ONLY place it can be applied -- which means the launcher has to be
+    # settable. Resolved with Get-Command up front so a typo fails here, loudly,
+    # instead of opening N tabs that each die with "file not found".
+    [string]$Launcher = 'claude',
+
+    # PER-SESSION backends. `-LauncherMap "a55ecf8e=cds,491c925c=cas"` gives each
+    # tab its own brain; anything unmatched falls back to -Launcher. Keys match on
+    # PREFIX, so the 8-character id shown in the listing is enough and nobody has
+    # to paste a full GUID. Longest key wins, so a full id always beats a prefix.
+    # This is the whole reason a resume is the right place to choose a backend:
+    # the engine already launches each tab as its own process, so one restore can
+    # legitimately bring back a DeepSeek session, a Kimi session and an Anthropic
+    # session side by side -- something no single-process setting can express.
+    [string]$LauncherMap,
+
+    # The key-driven selector. On by default whenever this is a real terminal and
+    # no selection was passed; -NoMenu forces the old one-line Read-Host prompt.
+    # It is NOT merely nicer: choosing a backend is a per-session decision now,
+    # and a single "1,3,5-7" answer cannot express "resume these six, that one on
+    # Kimi, the rest on DeepSeek". A prompt that cannot say what the user means
+    # pushes them back to typing raw -LauncherMap GUIDs.
+    [switch]$Menu,
+    [switch]$NoMenu,
+
     # Prove the liveness detector can still both PASS and FAIL. See the block below.
     [switch]$SelfTest
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Fail on a bad -Launcher HERE, not once per tab. A launcher that does not
+# resolve opens N terminals that each print "file not found" and exit, while the
+# engine reports success for all of them.
+if ($Launcher -ne 'claude') {
+    $lname = ($Launcher -split '\s+')[0]
+    if (-not (Get-Command $lname -ErrorAction SilentlyContinue)) {
+        throw "-Launcher '$lname' does not resolve to a command on PATH. Backend launchers live in ~/.aither/bin (cds, cks, cas); see .claude/skills/backend-switching/SKILL.md."
+    }
+}
+
+# --- Per-session launcher resolution -----------------------------------------
+# Parsed ONCE, up front, and every key validated the same way -Launcher is: a
+# typo in a map of six entries must not become five good tabs and one that dies
+# after the terminal is already on screen.
+$script:LauncherRules = @()
+if ($LauncherMap) {
+    foreach ($pair in ($LauncherMap -split ',')) {
+        $trimmed = $pair.Trim()
+        if (-not $trimmed) { continue }
+        $bits = $trimmed -split '=', 2
+        if ($bits.Count -ne 2 -or -not $bits[0].Trim() -or -not $bits[1].Trim()) {
+            throw "-LauncherMap entry '$trimmed' is not <session-id-or-prefix>=<launcher>."
+        }
+        $cmd = $bits[1].Trim()
+        $head = ($cmd -split '\s+')[0]
+        if ($head -ne 'claude' -and -not (Get-Command $head -ErrorAction SilentlyContinue)) {
+            throw "-LauncherMap names launcher '$head', which does not resolve to a command on PATH. Backend launchers live in ~/.aither/bin (cds, cks, cas)."
+        }
+        $script:LauncherRules += [pscustomobject]@{ Key = $bits[0].Trim(); Cmd = $cmd }
+    }
+    # Longest key first so a full id beats a prefix of it.
+    $script:LauncherRules = @($script:LauncherRules | Sort-Object { $_.Key.Length } -Descending)
+}
+
+function Resolve-Launcher {
+    param($Session)
+    # A choice made in the menu is the most specific statement of intent there
+    # is, so it outranks -LauncherMap and -Launcher both.
+    if ($script:MenuMap -and $script:MenuMap.ContainsKey($Session.Id)) {
+        return $script:MenuMap[$Session.Id]
+    }
+    foreach ($rule in $script:LauncherRules) {
+        if ($Session.Id -like "$($rule.Key)*") { return $rule.Cmd }
+    }
+    return $Launcher
+}
+
 
 # --- ANSI helpers (degrade gracefully if not a console) ---------------------
 $script:UseColor = -not $Json -and -not [Console]::IsOutputRedirected
@@ -464,6 +564,206 @@ function Expand-Selection {
 # answer is "dead" -- and a dead session is indistinguishable from a session you
 # never had. The dual-clock comparison above is the fix; this is the thing that
 # would have CAUGHT it, exercised against the REAL process table.
+# --- Backend roster + interactive picker ------------------------------------
+# These live ABOVE the -SelfTest block on purpose. PowerShell runs a script top
+# to bottom, so a function defined further down does not exist when -SelfTest
+# calls it -- and the parse check cannot see that, it only proves the syntax is
+# valid. Measured twice in one session: first as "The term Resolve-Launcher is
+# not recognized" from the -DryRun path, then again here.
+
+function Get-BackendRoster {
+    <# The backends offered in the menu, DERIVED, never hardcoded.
+
+       Every entry is a launcher shim in ~/.aither/bin that this box can actually
+       run, paired with the model its profile names. Deriving it means adding a
+       profile + shim makes it appear here with no edit, and a shim whose profile
+       was deleted cannot be offered (CCP006 in check_claude_provider_profiles.py
+       asserts that pair separately). A hardcoded list in a picker is how a menu
+       comes to offer a backend that 404s. #>
+    $roster = @([pscustomobject]@{ Cmd = 'claude'; Label = 'anthropic'; Model = 'Claude Max login' })
+
+    $profilesPath = Join-Path $PSScriptRoot '..\..\..\tools\claude-backend\profiles.json'
+    $profiles = $null
+    if (Test-Path $profilesPath) {
+        try { $profiles = Get-Content $profilesPath -Raw | ConvertFrom-Json } catch { $profiles = $null }
+    }
+
+    $binDir = Join-Path $HOME '.aither\bin'
+    if (Test-Path $binDir) {
+        foreach ($shim in (Get-ChildItem $binDir -Filter 'c*s.cmd' -File | Sort-Object Name)) {
+            $body = Get-Content $shim.FullName -Raw
+            # The `"?` is load-bearing. Every shim quotes the script path
+            # (`-File "C:\...\claude-backend.ps1" use deepseek %*`), so a
+            # pattern demanding whitespace straight after `.ps1` matches NOTHING
+            # and the roster silently collapses to Anthropic only -- a backend
+            # picker that cannot offer a backend. Measured on the first run.
+            if ($body -notmatch 'claude-backend\.ps1"?\s+use\s+([A-Za-z0-9._-]+)') { continue }
+            $profileName = $Matches[1]
+            $cmd = [IO.Path]::GetFileNameWithoutExtension($shim.Name)
+            if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) { continue }
+            $model = ''
+            if ($profiles -and ($profiles.PSObject.Properties.Name -contains $profileName)) {
+                $vars = $profiles.$profileName.vars
+                if ($vars -and $vars.ANTHROPIC_MODEL) { $model = $vars.ANTHROPIC_MODEL }
+            } else {
+                # Shim naming a profile that no longer exists: do not offer it.
+                continue
+            }
+            if (-not $model) { $model = 'Claude Max login' }
+            # `cas` is the explicit spelling of the default backend, so offering
+            # it alongside `claude` puts two rows in the picker that do the same
+            # thing and read identically. Keep the first spelling of any model.
+            if (@($roster.Model) -contains $model) { continue }
+            $roster += [pscustomobject]@{ Cmd = $cmd; Label = $profileName; Model = $model }
+        }
+    }
+    $roster
+}
+
+function Invoke-SessionMenu {
+    <# Key-driven picker. Returns a hashtable @{ Chosen; Map } or $null on cancel.
+
+       WHY A REAL MENU. The old prompt asked one question ("1,3,5-7") and the
+       decision now has two axes: which sessions, and which brain each one comes
+       back on. Encoding the second axis as a typed -LauncherMap means pasting
+       GUID prefixes by hand, which nobody does twice.
+
+       🪤 [Console]::ReadKey THROWS when stdin is redirected, and this script is
+       run headless by an agent and by a SessionStart hook. The caller guards on
+       IsInputRedirected; this function additionally refuses rather than hanging,
+       because a picker that blocks forever in a hook is worse than no picker. #>
+    param($Sessions, [string]$DefaultLauncher)
+
+    # $script:MenuKeyQueue lets -MenuSelfTest drive the SAME loop the user
+    # drives, with no console at all. Without it the headline feature of this
+    # script would ship having never been executed by anything but a human, and
+    # "I clicked it once and it looked right" is not a check.
+    $scripted = $null -ne $script:MenuKeyQueue
+    if (-not $scripted -and [Console]::IsInputRedirected) {
+        throw 'Invoke-SessionMenu needs a real terminal (stdin is redirected).'
+    }
+
+    $roster = @(Get-BackendRoster)
+    # Start every row on the default, and pre-select what a bulk resume would take.
+    $rows = @()
+    foreach ($s in $Sessions) {
+        $bIdx = [Math]::Max(0, [array]::IndexOf(@($roster.Cmd), $DefaultLauncher))
+        $rows += [pscustomobject]@{
+            S        = $s
+            Selected = (-not $s.IsBg) -and ($IncludeLive -or -not $s.Live)
+            BIdx     = $bIdx
+        }
+    }
+
+    $cur      = 0
+    $viewTop  = 0
+    $height   = if ($scripted) { [Math]::Max(3, $rows.Count) }
+                else { [Math]::Max(3, [Math]::Min($rows.Count, [Console]::WindowHeight - 12)) }
+    $width    = if ($scripted) { 80 } else { [Math]::Max(60, [Console]::WindowWidth - 2) }
+    $topRow   = $null
+
+    while ($true) {
+        # Keep the highlighted row inside the viewport.
+        if ($cur -lt $viewTop) { $viewTop = $cur }
+        if ($cur -ge $viewTop + $height) { $viewTop = $cur - $height + 1 }
+
+        if (-not $scripted) {
+            if ($null -eq $topRow) {
+                Write-Host ''
+                $topRow = [Console]::CursorTop
+            } else {
+                [Console]::SetCursorPosition(0, $topRow)
+            }
+        }
+
+        $out = [System.Collections.Generic.List[string]]::new()
+        $selCount = @($rows | Where-Object { $_.Selected }).Count
+        $out.Add((C '1;36' '  Claude Code - pick sessions and their backend'))
+        $out.Add((C '90' ('  ' + ('-' * [Math]::Min(76, $width - 4)))))
+
+        for ($i = $viewTop; $i -lt [Math]::Min($rows.Count, $viewTop + $height); $i++) {
+            $r    = $rows[$i]
+            $mark = if ($r.Selected) { '[x]' } else { '[ ]' }
+            $b    = $roster[$r.BIdx]
+            $title = $r.S.Title
+            if ($title.Length -gt 30) { $title = $title.Substring(0, 29) + '~' }
+            $tag = if ($r.S.IsBg) { ' bg-agent' } elseif ($r.S.Live) { ' live' } else { '' }
+            $line = '{0} {1} {2,-30} {3,-9} {4,-14}{5}' -f `
+                    $(if ($i -eq $cur) { '>' } else { ' ' }), $mark, $title,
+                    (Format-Age $r.S.When), $b.Label, $tag
+            if ($line.Length -gt $width) { $line = $line.Substring(0, $width) }
+            $body = if ($i -eq $cur) { C '1;33' $line } elseif ($r.Selected) { C '1;37' $line } else { C '90' $line }
+            $out.Add('  ' + $body)
+        }
+
+        if ($rows.Count -gt $height) {
+            $out.Add((C '90' ("  ... showing $($viewTop + 1)-$([Math]::Min($rows.Count, $viewTop + $height)) of $($rows.Count)")))
+        }
+        $out.Add((C '90' ('  ' + ('-' * [Math]::Min(76, $width - 4)))))
+        $out.Add((C '90' '  up/down move   space toggle   a all   n none'))
+        $out.Add((C '90' '  b backend for this row   B backend for ALL   Enter resume   q cancel'))
+        $out.Add((C '1;36' "  $selCount selected"))
+
+        if (-not $scripted) {
+            foreach ($line in $out) {
+                # Pad to the console width so a shorter redraw cannot leave the tail
+                # of the previous, longer line on screen.
+                $visible = ($line -replace "$([char]27)\[[0-9;]*m", '')
+                $pad = [Math]::Max(0, $width - $visible.Length)
+                Write-Host ($line + (' ' * $pad))
+            }
+        }
+
+        if ($scripted) {
+            if ($script:MenuKeyQueue.Count -eq 0) { throw 'MenuSelfTest ran out of keys before the menu returned.' }
+            $key = $script:MenuKeyQueue.Dequeue()
+        } else {
+            $key = [Console]::ReadKey($true)
+        }
+        switch ($key.Key) {
+            'UpArrow'   { if ($cur -gt 0) { $cur-- }; continue }
+            'DownArrow' { if ($cur -lt $rows.Count - 1) { $cur++ }; continue }
+            'Spacebar'  { $rows[$cur].Selected = -not $rows[$cur].Selected; continue }
+            'Enter'     {
+                $picked = @($rows | Where-Object { $_.Selected })
+                if ($picked.Count -eq 0) { return $null }
+                $map = @{}
+                foreach ($r in $picked) {
+                    $cmd = $roster[$r.BIdx].Cmd
+                    if ($cmd -ne $DefaultLauncher) { $map[$r.S.Id] = $cmd }
+                }
+                return @{ Chosen = @($picked.S); Map = $map }
+            }
+            'Escape'    { return $null }
+            default {
+                # -CaseSensitive is LOAD-BEARING, and so is every `break`.
+                # PowerShell's switch is case-insensitive by default AND falls
+                # through every matching case, so a lowercase 'b' ran the 'b'
+                # branch and then the 'B' branch: the row cycled twice and every
+                # other row silently inherited a backend nobody chose. Caught by
+                # the menu self-test on its first run, which is the entire reason
+                # that test exists -- both symptoms look like "the picker is
+                # flaky" and neither raises.
+                switch -CaseSensitive ("$($key.KeyChar)") {
+                    'k' { if ($cur -gt 0) { $cur-- }; break }
+                    'j' { if ($cur -lt $rows.Count - 1) { $cur++ }; break }
+                    'a' { foreach ($r in $rows) { if (-not $r.S.IsBg) { $r.Selected = $true } }; break }
+                    'n' { foreach ($r in $rows) { $r.Selected = $false }; break }
+                    'b' { $rows[$cur].BIdx = ($rows[$cur].BIdx + 1) % $roster.Count; break }
+                    'B' {
+                        # Set-all takes the HIGHLIGHTED row's next backend, so the
+                        # key does the same thing to every row that 'b' does to one.
+                        $next = ($rows[$cur].BIdx + 1) % $roster.Count
+                        foreach ($r in $rows) { $r.BIdx = $next }
+                        break
+                    }
+                    'q' { return $null }
+                }
+            }
+        }
+    }
+}
+
 if ($SelfTest) {
     $fails = @()
     $me    = Get-Process -Id $PID
@@ -526,6 +826,78 @@ if ($SelfTest) {
         Write-Host ("  self-test FAILED ({0})" -f $fails.Count) -ForegroundColor Red
         exit 1
     }
+    # --- The menu, driven by a scripted key sequence -------------------------
+    # Three sessions; select #1 and #3, put #3 on the second backend, resume.
+    # Asserts the RETURN VALUE, which is what the launch path consumes.
+    function New-MenuKey([string]$Name, [char]$Ch) {
+        [System.ConsoleKeyInfo]::new($Ch, [System.ConsoleKey]::$Name, $false, $false, $false)
+    }
+    $fake = @(
+        [pscustomobject]@{ Id = 'aaaaaaaa-1'; Title = 'one';   When = (Get-Date); IsBg = $false; Live = $false; Cwd = 'C:\a' },
+        [pscustomobject]@{ Id = 'bbbbbbbb-2'; Title = 'two';   When = (Get-Date); IsBg = $false; Live = $false; Cwd = 'C:\b' },
+        [pscustomobject]@{ Id = 'cccccccc-3'; Title = 'three'; When = (Get-Date); IsBg = $false; Live = $false; Cwd = 'C:\c' }
+    )
+    $roster = @(Get-BackendRoster)
+    Write-Host ''
+    Write-Host (C '1;36' "  menu self-test  (roster: $((@($roster.Label)) -join ', '))")
+
+    # 'n' clears the pre-selection, space picks row 1, down/down to row 3, space
+    # picks it, 'b' cycles that row's backend, Enter returns.
+    $script:MenuKeyQueue = [System.Collections.Queue]::new()
+    foreach ($k in @(
+        (New-MenuKey 'N' 'n'),
+        (New-MenuKey 'Spacebar' ' '),
+        (New-MenuKey 'DownArrow' ([char]0)),
+        (New-MenuKey 'DownArrow' ([char]0)),
+        (New-MenuKey 'Spacebar' ' '),
+        (New-MenuKey 'B' 'b'),
+        (New-MenuKey 'Enter' ([char]13))
+    )) { $script:MenuKeyQueue.Enqueue($k) }
+
+    $menuFail = $false
+    try {
+        $res = Invoke-SessionMenu -Sessions $fake -DefaultLauncher 'claude'
+    } catch {
+        Write-Host (C '1;31' "  FAIL menu threw: $($_.Exception.Message)"); $menuFail = $true; $res = $null
+    }
+    $script:MenuKeyQueue = $null
+
+    if (-not $menuFail) {
+        $ids = @($res.Chosen.Id)
+        if ($ids.Count -eq 2 -and $ids -contains 'aaaaaaaa-1' -and $ids -contains 'cccccccc-3') {
+            Write-Host (C '32' '  ok   space/arrows selected exactly rows 1 and 3')
+        } else {
+            Write-Host (C '1;31' "  FAIL selection was [$($ids -join ', ')], expected rows 1 and 3"); $menuFail = $true
+        }
+        if ($roster.Count -gt 1) {
+            $want = $roster[1].Cmd
+            if ($res.Map['cccccccc-3'] -eq $want) {
+                Write-Host (C '32' "  ok   'b' moved row 3 to '$want' and left the others on the default")
+            } else {
+                Write-Host (C '1;31' "  FAIL row 3 mapped to '$($res.Map['cccccccc-3'])', expected '$want'"); $menuFail = $true
+            }
+            if ($res.Map.ContainsKey('aaaaaaaa-1')) {
+                Write-Host (C '1;31' '  FAIL row 1 was given an override it never asked for'); $menuFail = $true
+            }
+        } else {
+            Write-Host (C '1;33' '  skip per-row backend: only one backend on this box')
+        }
+    }
+
+    # Cancel must return $null, not an empty resume.
+    $script:MenuKeyQueue = [System.Collections.Queue]::new()
+    $script:MenuKeyQueue.Enqueue((New-MenuKey 'Q' 'q'))
+    $cancelled = Invoke-SessionMenu -Sessions $fake -DefaultLauncher 'claude'
+    $script:MenuKeyQueue = $null
+    if ($null -eq $cancelled) { Write-Host (C '32' "  ok   'q' cancels and resumes nothing") }
+    else { Write-Host (C '1;31' '  FAIL cancel returned a selection'); $menuFail = $true }
+
+    if ($menuFail) {
+        Write-Host ''
+        Write-Host (C '1;31' '  self-test FAILED (menu)')
+        exit 1
+    }
+
     Write-Host '  self-test OK' -ForegroundColor Green
     exit 0
 }
@@ -855,8 +1227,10 @@ function Show-Table {
     Write-Host (C '90' ('  ' + ('-' * 70)))
 }
 
+# --- Backend roster ---------------------------------------------------------
 # --- Decide selection -------------------------------------------------------
 $chosenIdx = @()
+$menuMap   = $null
 
 # -SelectId already resolved its sessions (by journal filename, before the scan) —
 # it is the SAFE, race-free way to choose, and the one tooling must use. Positional
@@ -874,7 +1248,7 @@ if ($selectedById) {
     foreach ($b in $bgNamed) {
         Write-Host (C '1;33' "  '$($b.Title)' is a background agent — not resumable.")
         Write-Host (C '90'   "    attach:  claude agents            (id $($b.Id))")
-        Write-Host (C '90'   "    or fork:  claude --resume $($b.Id) --fork-session")
+        Write-Host (C '90'   "    or fork:  $Launcher --resume $($b.Id) --fork-session")
     }
     $chosen = @($selectedById | Where-Object { -not $_.IsBg })
     if ($chosen.Count -eq 0) {
@@ -905,24 +1279,51 @@ elseif ($All) {
     $chosenIdx = Expand-Selection -Spec $Select -Count $sessions.Count
     Show-Table
 } else {
-    Show-Table
-    Write-Host ''
-    Write-Host (C '90' "  Pick sessions to resume: e.g. 1,3,5-7  •  'a' = all  •  Enter = cancel")
-    $answer = Read-Host '  resume'
-    if ([string]::IsNullOrWhiteSpace($answer)) {
-        Write-Host '  Cancelled.' -ForegroundColor Yellow
-        exit 0
+    # The menu is the default in a real terminal. It falls back rather than
+    # failing: an agent, a hook and a piped invocation all reach this branch with
+    # stdin redirected, and a picker that blocks there strands the caller.
+    $wantMenu = -not $NoMenu -and ($Menu -or -not [Console]::IsInputRedirected)
+    $picked   = $null
+    if ($wantMenu) {
+        try { $picked = Invoke-SessionMenu -Sessions $sessions -DefaultLauncher $Launcher }
+        catch {
+            Write-Host (C '90' "  (menu unavailable: $($_.Exception.Message) - falling back to the text prompt)")
+            $wantMenu = $false
+        }
     }
-    $chosenIdx = Expand-Selection -Spec $answer -Count $sessions.Count
+    if ($wantMenu) {
+        if ($null -eq $picked) {
+            Write-Host '  Cancelled.' -ForegroundColor Yellow
+            exit 0
+        }
+        $chosen  = @($picked.Chosen)
+        $menuMap = $picked.Map
+        # The menu returns SESSIONS, not positions, so the index path below is
+        # skipped entirely -- which also sidesteps the reorder race that makes
+        # positional selection unsafe across calls.
+        $chosenIdx = @()
+    } else {
+        Show-Table
+        Write-Host ''
+        Write-Host (C '90' "  Pick sessions to resume: e.g. 1,3,5-7  •  'a' = all  •  Enter = cancel")
+        $answer = Read-Host '  resume'
+        if ([string]::IsNullOrWhiteSpace($answer)) {
+            Write-Host '  Cancelled.' -ForegroundColor Yellow
+            exit 0
+        }
+        $chosenIdx = Expand-Selection -Spec $answer -Count $sessions.Count
+    }
 }
 
-if (-not $SelectId) {
+if (-not $SelectId -and -not $menuMap) {
     if (-not $chosenIdx -or $chosenIdx.Count -eq 0) {
         Write-Host '  Nothing selected.' -ForegroundColor Yellow
         exit 0
     }
     $chosen = @($chosenIdx | ForEach-Object { $sessions[$_ - 1] })
 }
+
+$script:MenuMap = $menuMap
 
 # --- Launch -----------------------------------------------------------------
 # Backends, in preference order. PowerShell 7 is cross-platform, and so is Claude
@@ -954,7 +1355,7 @@ if ($DryRun) {
     Write-Output "DRY RUN — would resume $($chosen.Count) session(s):"
     foreach ($s in $chosen) {
         Write-Output "  [$($s.Id)] $($s.Title)"
-        Write-Output "      cd $($s.Cwd) && claude --resume $($s.Id)"
+        Write-Output "      cd $($s.Cwd) && $(Resolve-Launcher $s) --resume $($s.Id)"
     }
     exit 0
 }
@@ -992,7 +1393,7 @@ function New-TabArgs {
     $payload = "Remove-Item Env:NO_COLOR, Env:CLAUDECODE, Env:CLAUDE_CODE_SESSION_ID, " +
                "Env:CLAUDE_CODE_CHILD_SESSION, Env:CLAUDE_CODE_ENTRYPOINT, Env:CLAUDE_PID " +
                "-ErrorAction SilentlyContinue; `$PSStyle.OutputRendering='Ansi'; " +
-               "claude --resume $($Session.Id)"
+               "$(Resolve-Launcher $Session) --resume $($Session.Id)"
     $b64 = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($payload))
     $a.Add($script:PwshPath); $a.Add('-NoExit'); $a.Add('-EncodedCommand'); $a.Add($b64)
     $a
@@ -1021,7 +1422,7 @@ if ($useTmux) {
         # Same inherited-NO_COLOR scrub as the wt path (see New-TabArgs). Worse here:
         # a tmux SERVER started from a Claude Code session keeps that environment for
         # every window created later, so the monochrome outlives the launching session.
-        $cmd  = "unset NO_COLOR; claude --resume $($s.Id)"
+        $cmd  = "unset NO_COLOR; $(Resolve-Launcher $s) --resume $($s.Id)"
         if (-not $sessionExists) {
             & $tmuxCmd.Source new-session -d -s $TmuxSession -n $name -c $s.Cwd $cmd
             $sessionExists = $true
@@ -1054,7 +1455,7 @@ if ($IsMacOS -and -not $wt) {
         # tab opens in the wrong directory and the resume dies. The wt/tmux paths
         # never had this — they pass the cwd as its own argv element. Single quotes
         # also survive the AppleScript escaping below, which only touches \ and ".
-        $shell = "unset NO_COLOR; cd '" + $s.Cwd + "' && claude --resume " + $s.Id
+        $shell = "unset NO_COLOR; cd '" + $s.Cwd + "' && " + (Resolve-Launcher $s) + " --resume " + $s.Id
         $esc = $shell -replace '\\', '\\\\' -replace '"', '\"'
         & osascript -e "tell application `"Terminal`" to do script `"$esc`"" | Out-Null
     }
@@ -1075,7 +1476,7 @@ if (-not $wt) {
         Write-Host ''
         Write-Host ("    " + (C '1;37' $s.Title))
         Write-Host ("    cd " + $s.Cwd)
-        Write-Host ("    claude --resume " + $s.Id)
+        Write-Host ("    " + (Resolve-Launcher $s) + " --resume " + $s.Id)
     }
     Write-Host ''
     exit 0

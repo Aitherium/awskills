@@ -620,11 +620,16 @@ def _parse_backlog(text: str) -> List[Dict[str, str]]:
     entries: List[Dict[str, str]] = []
     current: Optional[Dict[str, str]] = None
     in_entries = False
+    folded = False  # inside a folded scalar (`>`, `>-`, `|`, `|-`)
+    fold_key = ""   # the key whose value the fold assembles
+    fold_indent = 0
+    fold_lines: List[str] = []
     for lineno, raw in enumerate(text.splitlines(), 1):
         line = raw.split(" #")[0].rstrip() if not raw.lstrip().startswith("#") else ""
         if not line.strip():
             continue
         stripped = line.strip()
+        indent = len(line) - len(line.lstrip(" \t"))
         if not line.startswith((" ", "\t", "-")) and stripped.endswith(":"):
             in_entries = stripped[:-1].strip() == "entries"
             continue
@@ -634,6 +639,27 @@ def _parse_backlog(text: str) -> List[Dict[str, str]]:
             continue
         if stripped in ("[]", "entries: []"):
             continue
+        if folded and indent > fold_indent:
+            # Continuation lines of a folded scalar sit deeper than the fold's
+            # own key line (`signature: >-` at 4, its prose at 6) and carry no
+            # `key: value` shape — parsing them as entries is how a folded
+            # reason raised "cannot parse" and made the whole backlog
+            # unreadable to this hook (measured 2026-08-30: line 36 of the
+            # real backlog; `signature: >-` blocks fold too, and the entry's
+            # OWN `status:`/`target:` keys sit at the SAME depth as the key
+            # line, so they end the fold rather than joining it).
+            fold_lines.append(stripped)
+            continue
+        if folded:
+            # A line at the fold's own depth or shallower ends it: assemble
+            # the value (YAML `>` folds lines with a single space) and carry
+            # on — that line may be a sibling key or the next entry.
+            if fold_key:
+                current[fold_key] = " ".join(fold_lines)
+            folded = False
+            fold_key = ""
+            fold_indent = 0
+            fold_lines = []
         if stripped.startswith("- "):
             current = {}
             entries.append(current)
@@ -645,7 +671,17 @@ def _parse_backlog(text: str) -> List[Dict[str, str]]:
         if current is None:
             raise BacklogError("line %d: key outside any entry" % lineno)
         key, _, value = stripped.partition(":")
-        current[key.strip()] = value.strip().strip("'\"")
+        value = value.strip().strip("'\"")
+        if key.strip() in ("reason", "signature") and value in (">", ">-", "|", "|-"):
+            folded = True
+            fold_key = key.strip()
+            # The key sits at indent+2 when the line carries an entry marker
+            # (`  - signature: >-` — dash at 2, key at 4); sibling keys
+            # (`    status:`) sit at that same depth and must END the fold.
+            fold_indent = indent + (2 if line.lstrip().startswith("- ") else 0)
+        current[key.strip()] = value
+    if folded and fold_key:
+        current[fold_key] = " ".join(fold_lines)
     return entries
 
 
