@@ -47,6 +47,20 @@ request has completed against the local endpoint.
 
 ## 2. Bootstrap the local Aither World
 
+The universal terminal front door is **AitherShell / `awsh`**. Use the official
+one-command installer for a laptop, or the phone-specific installer inside Termux or
+the Pixel Linux Terminal:
+
+```bash
+curl -fsSL https://aitherium.com/install.sh | sh
+curl -fsSL https://aitherium.com/phone.sh | bash
+awsh --version
+```
+
+Review the installer source or pin a verified release when building a production
+bootstrapper. The rest of this skill describes the inspectable recovery path when the
+official installer is unavailable or when a project wants to own every step.
+
 On Windows, prefer **AitherZero** as the orchestration layer when it is available.
 It gives a blank machine a PowerShell-native path through the Aitherium products and
 keeps the bootstrap steps inspectable instead of hiding them behind a monolithic
@@ -147,7 +161,24 @@ the target agent's skill layout. The same MCP server can be shared by Claude Cod
 Codex, Aider, Cursor, Cline, OpenClaw, Goose, Gemini CLI, and other MCP clients, but
 each client still needs its own explicit configuration and permission check.
 
-## 5. Add the browser and phone surface
+## 5. Switch coding backends without rebuilding the pack
+
+The ADK already exposes the common Claude Code backend profiles. Surface those
+commands in your UI/skill instead of hard-coding provider environment variables:
+
+```bash
+adk claude-model code                 # DeepSeek Flash fast coding profile
+adk claude-model status               # show the active profile
+adk claude-model check --timeout 30   # prove a real turn works
+```
+
+Other aliases include `plan`, `reason`, `local`, and `fast`; use `adk claude-model
+use <profile>` for a named profile. `awsettings` is the portable settings and
+approval layer when present, but it is not a guaranteed standalone executable on
+every host. A bootstrapper must detect that fact and keep working without it. Never
+put provider API keys into an awskill, MCP config, WebMCP bundle, or PWA.
+
+## 6. Add the browser and phone surface
 
 For a WebMCP-capable page, register a tool that delegates to the guarded MCP executor;
 the page itself should not implement privileged actions. For a PWA:
@@ -161,7 +192,7 @@ the page itself should not implement privileged actions. For a PWA:
 If the user wants a local-only phone flow, bind the host to a trusted LAN and explain the
 boundary. If the user wants internet access, require an authenticated tunnel and TLS.
 
-## 6. Make it shareable
+## 7. Make it shareable
 
 Every new tool should leave behind:
 
@@ -177,7 +208,7 @@ Prefer the existing `awskills` installer for distributing the skill. A skill is 
 runtime: ship the MCP server, scripts, or pack metadata required by the tool as separate,
 inspectable artifacts.
 
-## 7. Self-service authoring under `tools/agent/`
+## 8. Self-service authoring under `tools/agent/`
 
 When someone wants to make a new tool, scaffold it instead of asking them to understand
 every client format first:
