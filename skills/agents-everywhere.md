@@ -61,25 +61,30 @@ Review the installer source or pin a verified release when building a production
 bootstrapper. The rest of this skill describes the inspectable recovery path when the
 official installer is unavailable or when a project wants to own every step.
 
-On Windows, prefer **AitherZero** as the orchestration layer when it is available.
-It gives a blank machine a PowerShell-native path through the Aitherium products and
-keeps the bootstrap steps inspectable instead of hiding them behind a monolithic
-installer. The supported playbook flow is:
+On Windows, prefer **AitherZero** as the orchestration layer. It gives a blank
+machine a PowerShell-native path through the Aitherium products and keeps every
+bootstrap step inspectable (numbered scripts in `library/automation-scripts/`)
+instead of hiding them behind a monolithic installer. Nothing is required up
+front — not PowerShell 7, not git:
 
 ```powershell
-git clone https://github.com/Aitherium/AitherZero.git
-Set-Location AitherZero
-./build.ps1
-Import-Module ./AitherZero.psd1 -Force
-Get-AitherStatus
-Invoke-AitherPlaybook node-onboard
+# Windows - any PowerShell window (5.1 is fine). Installs pwsh 7, fetches
+# AitherZero to ~/.aitherzero, runs the dev-workstation playbook:
+# Python, Git, Node LTS, gh, awdk (adk), awsh, then verifies each one.
+irm https://raw.githubusercontent.com/Aitherium/AitherZero/main/bootstrap.ps1 | iex
 ```
 
-Run the status and playbook in a reviewable or dry-run mode first when the checkout
-supports it. Keep local overrides in `config/config.local.psd1`; do not put provider
-keys or device tokens in a repository. If a blank Windows machine cannot run the
-playbook, install PowerShell 7 and the named prerequisites directly, or use the
-standalone awdk/awsh commands below. Do not assume `bash -lc` exists on Windows.
+```bash
+# macOS / Linux / Termux (Termux runs the same steps natively; pwsh cannot run there)
+curl -fsSL https://raw.githubusercontent.com/Aitherium/AitherZero/main/bootstrap.sh | sh
+```
+
+Every step is idempotent; re-run the same line to repair a partial install.
+From an existing checkout the equivalent is `Invoke-AitherPlaybook dev-workstation`
+(`-DryRun` to preview). `node-onboard` is a different playbook — it enrolls the
+machine as a cluster node and needs an enrollment token. Keep local overrides in
+`config/config.local.psd1`; do not put provider keys or device tokens in a
+repository. Do not assume `bash -lc` exists on Windows.
 
 After the playbook, verify the actual runtime rather than only the package install:
 
