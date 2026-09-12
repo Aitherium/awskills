@@ -47,6 +47,38 @@ request has completed against the local endpoint.
 
 ## 2. Bootstrap the local Aither World
 
+On Windows, prefer **AitherZero** as the orchestration layer when it is available.
+It gives a blank machine a PowerShell-native path through the Aitherium products and
+keeps the bootstrap steps inspectable instead of hiding them behind a monolithic
+installer. The supported playbook flow is:
+
+```powershell
+git clone https://github.com/Aitherium/AitherZero.git
+Set-Location AitherZero
+./build.ps1
+Import-Module ./AitherZero.psd1 -Force
+Get-AitherStatus
+Invoke-AitherPlaybook node-onboard
+```
+
+Run the status and playbook in a reviewable or dry-run mode first when the checkout
+supports it. Keep local overrides in `config/config.local.psd1`; do not put provider
+keys or device tokens in a repository. If a blank Windows machine cannot run the
+playbook, install PowerShell 7 and the named prerequisites directly, or use the
+standalone awdk/awsh commands below. Do not assume `bash -lc` exists on Windows.
+
+After the playbook, verify the actual runtime rather than only the package install:
+
+```powershell
+adk status
+awsh --version
+adk doctor
+```
+
+`adk doctor` warnings about optional repository-development variables are not proof
+that inference is broken; a local model is only **running** after a real request has
+completed against the local endpoint.
+
 Prefer the supported awdk onboarding path, then prove it:
 
 ```bash
