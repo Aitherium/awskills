@@ -38,12 +38,15 @@ def make_files(name: str, description: str, slug: str, capabilities: list[str]) 
         "The user must approve through awnest/awnboard; awiam identifies the caller and",
         "awbac evaluates policy before execution. Missing identity or policy means deny.", "",
     ])
-    mcp = json.dumps({"mcpServers": {slug: {"command": "python", "args": ["-m", "<your_package>", "mcp"]}}}, indent=2) + "\n"
+    mcp_cfg = {"mcpServers": {slug: {"command": "python",
+                                     "args": ["-m", "<your_package>", "mcp"]}}}
+    mcp = json.dumps(mcp_cfg, indent=2) + "\n"
     webmcp = "\n".join([
         f"// Guarded WebMCP registration for {slug}; provide FORGE_EXECUTE in the host page.",
         "const modelContext = document.modelContext || navigator.modelContext;",
         "if (modelContext?.registerTool) await modelContext.registerTool({",
-        f"  name: {json.dumps(slug)}, title: {json.dumps(name)}, description: {json.dumps(description)},",
+        f"  name: {json.dumps(slug)}, title: {json.dumps(name)}, "
+        f"description: {json.dumps(description)},",
         "  inputSchema: {type: 'object', properties: {request: {type: 'string'}}},",
         f"  execute: async (input) => window.FORGE_EXECUTE({{tool: {json.dumps(slug)}, input}})",
         "});", "",
@@ -54,12 +57,14 @@ def make_files(name: str, description: str, slug: str, capabilities: list[str]) 
         "- WebMCP: load `webmcp.js` only in a page with an authenticated executor.",
         "- PWA: publish the static client over HTTPS; keep keys and inference on the host.", "",
         "## Trust chain", "", "`awnest` → `awnboard` → `awiam` → `awbac` → `awdit`", "",
-        f"Requested capabilities: `{scopes}`. Edit `policy.yaml` deliberately; default is deny.", "",
+        f"Requested capabilities: `{scopes}`. Edit `policy.yaml` deliberately; "
+        "default is deny.", "",
         "## Prove it", "", "1. Run the local MCP server.", "2. Connect Codex or Claude Code.",
         "3. Approve the requested capability as a human.", "4. Invoke it and save the result.", "",
     ])
     share_ps1 = "\n".join([
-        "$ErrorActionPreference = 'Stop'", f"Write-Host 'Review {slug} before publishing.' -ForegroundColor Cyan",
+        "$ErrorActionPreference = 'Stop'",
+        f"Write-Host 'Review {slug} before publishing.' -ForegroundColor Cyan",
         f"git add tools/agent/{slug}", "git diff --cached --check",
         f"Write-Host 'If correct: git commit -m \"Add {slug} agent tool\"; git push'", "",
     ])
