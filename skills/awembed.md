@@ -1,3 +1,9 @@
+---
+name: awembed
+description: >-
+  Train an embedding model that knows your corpus. Your agents search your code, your docs, your tickets with an embedding model that has never seen any of it. A general-purpose embedder is right about two thirds of the time on a corpus it was not trained on. You can do better with a model thirteen times smaller, in an afternoon, on one GPU — and prove it on a split the model never saw.
+---
+
 # awembed — train an embedding model that knows your corpus
 
 Your agents search your code, your docs, your tickets with an embedding model that has

@@ -1,7 +1,9 @@
 ---
+name: xy-charts
 allowed-tools: Read, Write, Bash
 description: Render data charts (line/scatter/bar/heatmap/pie/histogram/density) to PNG/SVG/JPEG/WebP/PDF or self-contained interactive HTML via the xy engine — for metrics, benchmarks, report figures, dashboard panels, and any "turn these numbers into a picture" ask. Use INSTEAD of writing matplotlib code, ASCII tables, or reaching for mermaid/diffusion when the subject is data. Covers direct library use in scripts and the xy_render_chart / xy_chart_spec_help tools where they are available.
 argument-hint: [what to chart, or a path to the data]
+
 ---
 
 # XY Charts — data → picture

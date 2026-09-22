@@ -1,3 +1,9 @@
+---
+name: gpu-vram-attribution
+description: >-
+  When the platform cannot tell you who is using the GPU. You have one GPU and a dozen containers on it. Something is starving. You run nvidia-smi to find out who is holding the memory, and it tells you nothing useful. Now what?
+---
+
 # gpu-vram-attribution — when the platform cannot tell you who is using the GPU
 
 You have one GPU and a dozen containers on it. Something is starving. You run `nvidia-smi`

@@ -1,3 +1,9 @@
+---
+name: awconnect
+description: >-
+  Wire your machine, agent, and browser into AitherOS. Awconnect is the onboarding layer: it connects a box you own to AitherOS — detecting local LLMs, setting up the gateway, joining the desktop/agent mesh, and (optionally) linking your browser — so a node you stood up locally becomes reachable and usable from the rest of the fleet and the portal.
+---
+
 # awconnect — wire your machine, agent, and browser into AitherOS
 
 Awconnect is the onboarding layer: it connects a box you own to AitherOS — detecting local LLMs,

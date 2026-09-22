@@ -1,3 +1,9 @@
+---
+name: hetzner-fleet
+description: >-
+  Provision bare metal and VPS directly into your mesh from Hetzner Cloud. Hetzner Cloud is a European VPS provider with a flat, pleasant API: one bearer token, no IAM, no service accounts. This skill wires it in as a provisioning target so a single deploy call spins up a server, attaches your SSH key, and registers it with your fleet.
+---
+
 # hetzner-fleet — provision bare metal and VPS directly into your mesh from Hetzner Cloud
 
 Hetzner Cloud is a European VPS provider with a flat, pleasant API: one bearer token, no

@@ -1,7 +1,9 @@
 ---
+name: github-agentic-c2
 allowed-tools: Bash, Read, Write
 description: Use GitHub as the control plane for autonomous agents — issues as the task queue, PRs as the review gate, git as the conflict-resolution protocol, Actions on self-hosted runners as your own compute, and Projects as the board. Load when wiring agents to run unattended work with an audit trail, when deciding what belongs in a public vs private repo, or when someone is about to build a bespoke job queue, dashboard and log store that GitHub already gives away.
 argument-hint: [wire an agent loop | public/private split | dispatch a job | audit a run]
+
 ---
 
 # GitHub as an agentic control plane

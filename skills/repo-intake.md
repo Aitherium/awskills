@@ -1,7 +1,9 @@
 ---
+name: repo-intake
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
 description: Turn "I found this GitHub repo — integrate/adapt/adopt it" into a decided, recorded outcome instead of another unread folder in a research folder. Use whenever the owner drops a repo URL, a .zip, or a checked-out clone and asks to absorb it. Runs a no-execute census, mines the design seams, maps every idea against what AitherOS ALREADY has, and forces a per-idea verdict (ADOPT / ADAPT / REFERENCE / REJECT) with a license gate. Do NOT use for adding a normal dependency (that's /dependencies) or for reverse-engineering a customer SaaS from a HAR (that's integration-intake).
 argument-hint: [<repo-url> | <path-to-zip> | <checked-out-dir>]
+
 ---
 
 # Repo intake — from "found a repo" to a decided outcome

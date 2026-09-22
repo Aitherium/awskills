@@ -1,7 +1,9 @@
 ---
+name: resume-all
 description: Reopen your killed Claude Code sessions — snapshot before a reboot, restore after, or pick from every project and resume as terminal tabs or tmux windows
 argument-hint: "[snapshot | restore | all | 1,3,5 | <filter text>]  (empty = pick interactively)"
 allowed-tools: Bash(pwsh:*)
+
 ---
 
 You are helping the user resume their previously-killed Claude Code sessions.

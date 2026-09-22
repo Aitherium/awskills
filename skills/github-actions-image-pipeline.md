@@ -1,7 +1,9 @@
 ---
+name: github-actions-image-pipeline
 allowed-tools: Read, Grep, Glob, Bash, PowerShell
 description: Run GitHub Actions image pipelines without rebuilding the same images on every push, or paying an hour-long cold build for a typo. The build-once/deploy-many architecture, why GitHub Actions' 10GB cache silently evicts your base image so every build is cold, the disk-reclaim step an ML base needs on a hosted runner, and the chain of never-exercised steps that each fail once your workflow finally runs. Written from a real deploy pipeline that went from 50-minute failing builds to seconds.
 argument-hint: [audit | build-once | cache | disk | never-run]
+
 ---
 
 # GitHub Actions image pipeline

@@ -1,3 +1,9 @@
+---
+name: dgx-spark-deepseek-v4
+description: >-
+  A 284B model at ~30 tok/s on one desk machine. Serve DeepSeek-V4-Flash-0731 — 284B parameters, 13B active, MoE — on a single NVIDIA DGX Spark (GB10, 121 GB unified memory, ARM64), with the vendor's own speculative-decoding drafter attached, and verify it is really working.
+---
+
 # dgx-spark-deepseek-v4 — a 284B model at ~30 tok/s on one desk machine
 
 Serve **DeepSeek-V4-Flash-0731** — 284B parameters, 13B active, MoE — on a single

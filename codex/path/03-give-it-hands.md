@@ -103,8 +103,6 @@ Two requirements:
 - The whole [skills catalogue](../../skills/) — 70+ procedures, MIT licensed.
 - [`awdk`](https://pypi.org/project/awdk/) — the agent runtime these
   packs are built for. `pip install awdk`.
-- [`aither-adk`](https://pypi.org/project/aither-adk/) — the agent runtime these
-  packs are built for. `pip install aither-adk`.
 - The [eighteen laws](../README.md#the-eighteen-laws) — read Part I first.
 
 ---

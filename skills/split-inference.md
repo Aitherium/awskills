@@ -1,7 +1,9 @@
 ---
+name: split-inference
 allowed-tools: split_detect_topology, split_resolve_recipe, split_plan_deployment, split_apply, split_verify, Read, Bash
 description: Shard ONE model across MULTIPLE machines' GPUs with llama.cpp RPC — build with -DGGML_RPC=ON, start rpc-server on the backend hosts, launch the main server with --rpc, and PROVE the split is real instead of a silent local-only fallback. The reference topology is Bonsai-27B across the local 5090 and the DGX Spark over the ~1ms LAN.
-argument-hint: [--recipe bonsai-27b-5090-dgx-rpc|multi-node-rpc-generic|single-node-cuda] [--stage build|main] [--dry-run]
+argument-hint: "[--recipe bonsai-27b-5090-dgx-rpc|multi-node-rpc-generic|single-node-cuda] [--stage build|main] [--dry-run]"
+
 ---
 
 ## Context

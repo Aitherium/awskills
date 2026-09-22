@@ -1,3 +1,9 @@
+---
+name: aither-codegraph
+description: >-
+  A call-graph-aware code index your agents can query. Grep finds strings; CodeGraph finds *structure*. It parses a codebase into chunks (functions, classes, routes) with a real call graph — who calls what, who's affected by a change — and lets an agent ask 'where is auth enforced?' and get the symbol, its signature, its callers, and its callees. It's the difference between an agent that greps and one that understands the code.
+---
+
 # aither-codegraph — a call-graph-aware code index your agents can query
 
 Grep finds strings; **CodeGraph** finds *structure*. It parses a codebase into chunks

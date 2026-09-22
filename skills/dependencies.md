@@ -1,4 +1,5 @@
 ---
+name: dependencies
 allowed-tools: Bash, Read, Glob, WebSearch
 description: Manage project dependencies, check for updates, and scan for vulnerabilities
 argument-hint: [--update|--audit|--clean|--tree]

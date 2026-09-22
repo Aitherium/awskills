@@ -1,7 +1,8 @@
 ---
+name: awgit-claude-code
 allowed-tools: Bash, PowerShell, Read, Write
-description: The awgit workflow for Claude Code / an Aither adk agent — how to work when every commit is captured as a semantic edit-op: what to check after a commit, how to read the attribution ledger, how to teleport deltas to a peer node, and how to find/merge node-level conflicts.
-argument-hint: [--repo <path>]
+description: "The awgit workflow for Claude Code / an Aither adk agent — how to work when every commit is captured as a semantic edit-op: what to check after a commit, how to read the attribution ledger, how to teleport deltas to a peer node, and how to find/merge node-level conflicts."
+argument-hint: "[--repo <path>]"
 ---
 
 ## Context

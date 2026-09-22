@@ -1,3 +1,9 @@
+---
+name: do-my-taxes
+description: >-
+  Do My Taxes — personal tax preparation workflow. Personal 1040 tax preparation using document ingestion, transaction categorization, deduction discovery, and CPA-ready output.
+---
+
 # Do My Taxes — personal tax preparation workflow
 
 Personal 1040 tax preparation using document ingestion, transaction categorization, deduction discovery, and CPA-ready output.

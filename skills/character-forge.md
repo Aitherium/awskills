@@ -1,3 +1,9 @@
+---
+name: character-forge
+description: >-
+  Character Forge — consistent characters, animation, talking avatars. The definitive procedure for making a character that stays the same character. Every trap below was paid for in real GPU hours and real off-model garbage. Read the Core Law first; it is the whole skill.
+---
+
 # Character Forge — consistent characters, animation, talking avatars
 
 The definitive procedure for making a character that **stays the same character**. Every trap

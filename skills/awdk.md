@@ -1,3 +1,9 @@
+---
+name: awdk
+description: >-
+  Run your own AI agent, on your machine, in three commands. [awdk](https://github.com/Aitherium/awdk) is the agent toolkit: an agent runtime, a local shell, inference setup, and control-plane enrollment in one package. You run the model, the agent loop, the memory, and your data on your own box — Aitherium hosts only the control plane, and you manage everything from api.aitherium.com. Nothing about your inference or data leaves your machine.
+---
+
 # awdk — run your own AI agent, on your machine, in three commands
 
 [awdk](https://github.com/Aitherium/awdk) is the agent toolkit: an agent runtime, a
@@ -62,7 +68,6 @@ self-hosted nodes are uncapped by default — caps only apply on the metered hos
 ## Part of one substrate
 
 awdk is the runtime the rest plug into: stand up hardware as an [awnode](awnode.md),
-wire it to the control plane with [awconnect](aitherconnect.md), provision the box with
 awdk is the runtime the rest plug into: stand up hardware as an [AitherNode](aithernode.md),
 wire it to the control plane with [Awconnect](awconnect.md), provision the box with
 [AitherZero](aitherzero.md), and pool compute across machines with

@@ -1,4 +1,5 @@
 ---
+name: event-loop-debugger
 allowed-tools: Bash, Read, Grep, Edit
 description: Detect, pin, and fix asyncio event-loop stalls in Python services — a synchronous call or CPU-bound work blocking the loop — including on the free-threaded python3.14t build where py-spy and gdb fail.
 argument-hint: [<service-url>|--capture|--fix]

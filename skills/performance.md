@@ -1,7 +1,9 @@
 ---
+name: performance
 allowed-tools: Bash, Read, Grep
 description: Analyze and optimize application performance, identify bottlenecks
 argument-hint: [<target>|--profile|--benchmark|--optimize]
+
 ---
 
 ## Context

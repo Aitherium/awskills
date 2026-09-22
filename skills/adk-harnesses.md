@@ -1,3 +1,9 @@
+---
+name: adk-harnesses
+description: >-
+  One shell that drives every coding shell. Your agent can hand a task to another coding agent's real product — Claude Code, Codex, Gemini CLI, Aider, OpenCode — and read back one answer.
+---
+
 # adk-harnesses — one shell that drives every coding shell
 
 Your agent can hand a task to **another coding agent's real product** — Claude Code,

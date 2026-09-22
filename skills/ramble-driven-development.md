@@ -1,7 +1,9 @@
 ---
+name: ramble-driven-development
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, PowerShell
 description: Stop writing careful prompts. Ramble to load intent, poke to steer, and put the precision in the harness instead — the measured prompt-shape law behind high-throughput agentic coding.
 argument-hint: [analyze | install | explain]
+
 ---
 
 # Ramble-Driven Development

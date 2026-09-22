@@ -1,7 +1,9 @@
 ---
+name: moat-guard
 allowed-tools: Bash, PowerShell, Read
 description: Open-core release hygiene — verify a build doesn't leak private code before publishing, and purge leaks that already shipped (GitHub releases/tags/history + index yank list)
-argument-hint: [check|find|purge] [--repo OWNER/NAME] [--project NAME] [--forbid-path GLOB ...] [--keep-from X.Y.Z]
+argument-hint: "[check|find|purge] [--repo OWNER/NAME] [--project NAME] [--forbid-path GLOB ...] [--keep-from X.Y.Z]"
+
 ---
 
 ## Context

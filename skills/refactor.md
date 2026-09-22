@@ -1,7 +1,9 @@
 ---
+name: refactor
 allowed-tools: Read, Edit, Glob
 description: Refactor code to improve structure, readability, and maintainability
 argument-hint: [<file_path>|<pattern>|--extract|--rename|--optimize]
+
 ---
 
 ## Context

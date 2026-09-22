@@ -1,7 +1,8 @@
 ---
+name: awgit-setup
 allowed-tools: Bash, PowerShell, Read, Write
 description: Set up awgit (Aither World-Graph git) on a machine — the semantic version-control layer that turns every git commit into a function-level edit-op with a verified GitHub identity, a durable attribution record, and differential sync. Install, init, install the capture hooks, verify.
-argument-hint: [--force] [--repo <path>]
+argument-hint: "[--force] [--repo <path>]"
 ---
 
 ## Context

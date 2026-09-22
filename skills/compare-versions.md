@@ -1,4 +1,5 @@
 ---
+name: compare-versions
 allowed-tools: Read, Grep
 description: Compare two versions of a file, commit, or release and report structural and behavioral diffs
 argument-hint: <version1> <version2>

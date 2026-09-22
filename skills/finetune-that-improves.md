@@ -1,3 +1,9 @@
+---
+name: finetune-that-improves
+description: >-
+  Train your own model without making it worse. Most fine-tunes lose to the model they started from, and you cannot tell from the score. This is what we learned doing it wrong seven times in a row.
+---
+
 # finetune-that-improves — train your own model without making it worse
 
 Most fine-tunes lose to the model they started from, and you cannot tell from

@@ -1,7 +1,9 @@
 ---
+name: fail-closed-authz
 allowed-tools: Read, Grep, Glob, Bash, PowerShell, Edit
 description: Review auth, tenancy, entitlement and cache-sharing code against six fail-closed defect classes that ruff and mypy cannot see — four checked mechanically by the bundled security_lint.py, three semantic ones you read against the diff. Every class was a real bug caught by review, not by lint.
 argument-hint: [<changed files> | --all | --explain]
+
 ---
 
 # Fail-Closed Authz Review

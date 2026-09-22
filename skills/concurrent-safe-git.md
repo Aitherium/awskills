@@ -1,4 +1,5 @@
 ---
+name: concurrent-safe-git
 allowed-tools: Read, Grep, Glob, Bash, PowerShell
 description: Commit safely in a worktree you do NOT have to yourself — several agents, a teammate, and a maintenance loop all editing and committing at once. The pathspec commit form, the four commands that silently destroy someone else's work, and the stat-dirty refresh that unblocks a merge git only THINKS is unsafe. Written from real incidents where a 10-line fix committed 270 lines and a reset --hard put a fixed security bug back into production.
 argument-hint: [commit | unblock-merge | diverged]
