@@ -1,3 +1,9 @@
+---
+name: omninode-node
+description: >-
+  Join the OmniNode P2P inference mesh in one command. Stand up an [OmniNode Protocol](https://github.com/SUM-INNOVATION/OmniNode-Protocol) node on any machine you own — Linux, macOS, or Windows/WSL2 — from nothing installed to a live, discoverable peer on the mesh. OmniNode is a trustless, peer-to-peer network (by SUM-INNOVATION) that pools consumer hardware into a fabric big enough to run models no single device could hold: any device with a chip can become a node.
+---
+
 # omninode-node — join the OmniNode P2P inference mesh in one command
 
 Stand up an [OmniNode Protocol](https://github.com/SUM-INNOVATION/OmniNode-Protocol) node on any

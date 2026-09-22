@@ -1,7 +1,9 @@
 ---
+name: model-quantization
 allowed-tools: Bash, Read
 description: Quantize an LLM to 4-bit with AutoRound — RTN runs free on local CPU+GPU; keeps lm_head/projectors in bf16 and dodges the new-architecture crashes
 argument-hint: <model-id-or-path> [-o OUTDIR] [--iters N] [--keep-fp REGEX ...] [--dry-run]
+
 ---
 
 ## Context

@@ -1,7 +1,9 @@
 ---
+name: secretguard
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 description: Scan for leaked secrets and purge them from git history
-argument-hint: [scan|purge|allowlist] [--tree|--depth N|--dry-run|--force]
+argument-hint: "[scan|purge|allowlist] [--tree|--depth N|--dry-run|--force]"
+
 ---
 
 ## Context

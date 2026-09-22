@@ -1,3 +1,9 @@
+---
+name: aither-code-intelligence
+description: >-
+  Stand up agent code-search, and prove it actually works. Three layers make an agent stop reading files it doesn't need: [prospector](aither-prospector.md) (*where* to look), [codegraph](aither-codegraph.md) (*which symbols*, and who calls them), [headroom](aither-headroom.md) (*shrink what's left*). Each has its own skill. This one is about running them for real — because the hard part isn't setup, it's noticing when they've quietly stopped working.
+---
+
 # aither-code-intelligence — stand up agent code-search, and prove it actually works
 
 Three layers make an agent stop reading files it doesn't need:

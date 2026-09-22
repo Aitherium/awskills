@@ -1,3 +1,9 @@
+---
+name: docker-network-ops
+description: >-
+  Diagnose container DNS and networking without fooling yourself. Container networking faults are latency-shaped, load-shaped and client-specific. Almost every instinctive way to measure them returns a confident wrong answer. This skill is the set of measurements that survive, plus the tool that runs them in the right order.
+---
+
 # docker-network-ops — diagnose container DNS and networking without fooling yourself
 
 Container networking faults are **latency-shaped, load-shaped and client-specific**. Almost

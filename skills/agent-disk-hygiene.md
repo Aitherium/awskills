@@ -1,3 +1,9 @@
+---
+name: agent-disk-hygiene
+description: >-
+  Your coding agents are quietly eating your disk. Nobody tells you this when you start running agents at scale: they generate enormous amounts of disk garbage, in places you will never think to look. Not model weights — *debris*. Throwaway git worktrees, build tarballs, ISO output, caches inside caches.
+---
+
 # agent-disk-hygiene — your coding agents are quietly eating your disk
 
 Nobody tells you this when you start running agents at scale: **they generate enormous

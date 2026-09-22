@@ -1,7 +1,9 @@
 ---
+name: purecss-art
 allowed-tools: Read, Write, Edit, Bash
 description: Generate realistic illustrations hand-coded entirely in HTML + CSS (the Diana Smith / "cyanharlow" technique — absolute-positioned divs, gradients, layered box-shadow, clip-path, transforms; no images, no SVG, no scripts). Brief → self-contained index.html + style.css → headless-Chromium render → vision-critique refine loop. The live HTML/CSS source is the deliverable; a PNG preview is rendered alongside. Load before bundling any exemplar artwork as a few-shot or training source — most of the well-known pieces are NOT openly licensed.
-argument-hint: [what to draw] [optional style hint]
+argument-hint: "[what to draw] [optional style hint]"
+
 ---
 
 # PureCSS art → live HTML/CSS + PNG preview

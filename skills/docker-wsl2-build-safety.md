@@ -1,3 +1,9 @@
+---
+name: docker-wsl2-build-safety
+description: >-
+  Stop bulk builds from killing Docker Desktop (and don't blame the disk). Docker Desktop on Windows runs its engine inside a WSL2 VM with a fixed memory ceiling. Build a lot of images while a lot of containers are resident and the VM's storage layer can collapse — taking every container down with it. The failure does not look like 'you ran out of memory'. It looks like your disk is dying.
+---
+
 # docker-wsl2-build-safety — stop bulk builds from killing Docker Desktop (and don't blame the disk)
 
 Docker Desktop on Windows runs its engine inside a WSL2 VM with a **fixed memory ceiling**.

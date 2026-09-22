@@ -1,3 +1,9 @@
+---
+name: pooled-inference
+description: >-
+  Run a model no single box can hold, across every tier you own. A 284B sparse MoE at Q4 is ~155 GB. No consumer box holds that. But a desktop with 128 GB DDR5 + a 32 GB GPU, plus a 128 GB unified-memory box, holds it three times over — if you can spread it. llama.cpp's RPC backend does exactly that, and it works.
+---
+
 # pooled-inference — run a model no single box can hold, across every tier you own
 
 A 284B sparse MoE at Q4 is ~155 GB. No consumer box holds that. But a desktop with

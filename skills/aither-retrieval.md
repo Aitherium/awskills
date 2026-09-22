@@ -1,3 +1,9 @@
+---
+name: aither-retrieval
+description: >-
+  Aither Retrieval — one surface, every modality. The AitherOS retrieval surface answers one question and returns fused, ranked results from every modality you have — vector similarity, PostgreSQL full-text (tsvector), fuzzy (trigram), graph traversal, code-graph lookup and scoped memory recall. One base URL, one auth model, one error envelope, one cursor.
+---
+
 # Aither Retrieval — one surface, every modality
 
 The AitherOS retrieval surface answers one question and returns fused, ranked

@@ -552,6 +552,54 @@ def _(fn=None):
     )
 
 
+GUARD_HOOK = os.path.join(HERE, "pre_bash_git_guard.py")
+
+
+def _guard(command: str) -> int:
+    payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": os.getcwd()})
+    return subprocess.run([sys.executable, GUARD_HOOK], input=payload, text=True,
+                          capture_output=True, cwd=HERE, env={**os.environ, "GIT_GUARD_WORKTREE_MARKERS": "hooks"}).returncode
+
+
+@case("git guard: its own self-test passes")
+def _(fn=None):
+    rc = subprocess.run([sys.executable, GUARD_HOOK, "--self-test"], capture_output=True, text=True).returncode
+    if rc != 0:
+        raise AssertionError(f"pre_bash_git_guard.py --self-test exited {rc}")
+
+
+@case("git guard: a raw merge in the worktree is refused (exit 2), a read is allowed")
+def _(fn=None):
+    if _guard("git merge origin/main") != 2:
+        raise AssertionError("git merge was not refused")
+    if _guard("git status") != 0:
+        raise AssertionError("git status was refused")
+
+
+GUARD_HOOK = os.path.join(HERE, "pre_bash_git_guard.py")
+
+
+def _guard(command: str) -> int:
+    payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": os.getcwd()})
+    return subprocess.run([sys.executable, GUARD_HOOK], input=payload, text=True,
+                          capture_output=True, cwd=HERE, env={**os.environ, "GIT_GUARD_WORKTREE_MARKERS": "hooks"}).returncode
+
+
+@case("git guard: its own self-test passes")
+def _(fn=None):
+    rc = subprocess.run([sys.executable, GUARD_HOOK, "--self-test"], capture_output=True, text=True).returncode
+    if rc != 0:
+        raise AssertionError(f"pre_bash_git_guard.py --self-test exited {rc}")
+
+
+@case("git guard: a raw merge in the worktree is refused (exit 2), a read is allowed")
+def _(fn=None):
+    if _guard("git merge origin/main") != 2:
+        raise AssertionError("git merge was not refused")
+    if _guard("git status") != 0:
+        raise AssertionError("git status was refused")
+
+
 # ---------------------------------------------------------------------- runner
 
 

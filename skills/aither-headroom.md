@@ -1,3 +1,9 @@
+---
+name: aither-headroom
+description: >-
+  Cut agent token cost with reversible context compression. Agents burn most of their tokens re-sending bulky context every turn: verbose JSON tool output, retrieved documents, file dumps. [headroom](https://github.com/wizzense/headroom) (headroom-ai) crushes that content with a SmartCrusher pipeline — measured ~46% token savings on an 87 KB lint blob — while *protecting* conversation and user text so answers don't degrade. AitherOS wires it in two ways: an automatic pre-send hook at the single LLM chokepoint, and agent-callable tools you invoke mid-loop.
+---
+
 # aither-headroom — cut agent token cost with reversible context compression
 
 Agents burn most of their tokens re-sending bulky context every turn: verbose JSON tool

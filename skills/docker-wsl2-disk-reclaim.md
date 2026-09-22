@@ -1,3 +1,9 @@
+---
+name: docker-wsl2-disk-reclaim
+description: >-
+  Your drive is full and `docker system df` is lying to you. Docker Desktop on WSL2 stores everything in a dynamically-expanding VHDX that never shrinks. You delete 200GB of images, docker system df drops, and your drive stays exactly as full as before. People then go looking for the space in the wrong place — or buy a disk.
+---
+
 # docker-wsl2-disk-reclaim — your drive is full and `docker system df` is lying to you
 
 Docker Desktop on WSL2 stores everything in a **dynamically-expanding VHDX that never

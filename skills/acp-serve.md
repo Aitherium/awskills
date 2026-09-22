@@ -1,3 +1,9 @@
+---
+name: acp-serve
+description: >-
+  Expose an AitherOS agent to ACP editors. ACP editors — JetBrains IDEs, Zed, VS Code, neovim, Obsidian — drive coding agents over the Agent Client Protocol. adk acp serve makes any AitherOS agent one of those agents: the editor spawns it as a subprocess, and every prompt, permission request and tool round-trip goes over stdio JSON-RPC. Your agent's approval gate maps onto ACP permission requests.
+---
+
 # acp-serve — expose an AitherOS agent to ACP editors
 
 ACP editors — JetBrains IDEs, Zed, VS Code, neovim, Obsidian — drive coding

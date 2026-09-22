@@ -1,7 +1,9 @@
 ---
+name: website-as-code
 allowed-tools: Bash, PowerShell, Read, Write, Edit, WebFetch
 description: Deploy a website as code — GitHub Pages frontend + Cloudflare Tunnel backend on any machine + an automated never-show-a-raw-error fallback. $0/month plus the domain.
-argument-hint: [domain] [--backend-port 8000] [--no-worker]
+argument-hint: "[domain] [--backend-port 8000] [--no-worker]"
+
 ---
 
 ## Context

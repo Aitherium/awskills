@@ -1,3 +1,9 @@
+---
+name: aither-agent-notebook
+description: >-
+  Turn 'build X' into a reviewable, re-runnable plan. A one-shot agent dispatch is a black box: it runs, it either worked or it didn't, and you can't see *why*, replay it with one input changed, or hand it to a human before it touches anything. An Agent Notebook (.anb) fixes that. It's AitherOS's executable, reviewable unit of agent work — an ordered list of typed cells that runs on the platform, records a cost-tracked run every time it executes, and can be replayed, diffed, reviewed, gated, and exported to a Jupyter .ipynb.
+---
+
 # aither-agent-notebook — turn "build X" into a reviewable, re-runnable plan
 
 A one-shot agent dispatch is a black box: it runs, it either worked or it didn't, and you

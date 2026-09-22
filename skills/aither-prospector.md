@@ -1,3 +1,9 @@
+---
+name: aither-prospector
+description: >-
+  A semantic file-explorer that tells agents WHERE to look. Before an agent greps a 4,000-directory monorepo, it should know the three dirs worth grepping. Prospector (Phase 1, the 'landmark map') clusters a codebase into semantic regions — auth, api, data, ui, service — and answers *'where is rate limiting enforced?'* with the directories to search first. It's the cheap scout that makes [CodeGraph](aither-codegraph.md)/grep pay off instead of scanning everything.
+---
+
 # aither-prospector — a semantic file-explorer that tells agents WHERE to look
 
 Before an agent greps a 4,000-directory monorepo, it should know the three dirs worth

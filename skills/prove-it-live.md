@@ -1,7 +1,9 @@
 ---
+name: prove-it-live
 allowed-tools: Read, Grep, Glob, Bash, PowerShell, Edit, Write
 description: The verification standard — green tests, a 200, and "deployed" are not proof. Require a check that can FAIL, hunt the silent no-op, and refuse to call anything done until the happy path is shown returning real data live. Includes an installable stop-hook that blocks a turn claiming done with no evidence.
 argument-hint: [check | install-hook | explain]
+
 ---
 
 # Prove It Live

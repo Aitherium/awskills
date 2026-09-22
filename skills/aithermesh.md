@@ -1,3 +1,9 @@
+---
+name: aithermesh
+description: >-
+  Stand up a private mesh and onboard nodes + agents to it. AitherMesh is a private overlay network (WireGuard, 10.77.0.0/16) that lets machines you own — anywhere, behind any NAT or firewall — reach each other as if they were on one LAN, and lets your agents run *across* them. This skill uses [AitherZero](aitherzero.md)'s automation-scripts to do the whole thing: create the control plane, join nodes to the overlay, and deploy mesh-native agents onto them — idempotent, one playbook, or step by step.
+---
+
 # aithermesh — stand up a private mesh and onboard nodes + agents to it
 
 AitherMesh is a private overlay network (WireGuard, `10.77.0.0/16`) that lets machines you own —
@@ -64,7 +70,6 @@ nodes reachable over `10.77.x.x` and the agents discoverable to each other.
 
 ## Part of one substrate
 
-The mesh is the fabric the rest ride on: [awconnect](aitherconnect.md) is the per-machine seam
 onto it (`adk mesh onboard`), an [awnode](awnode.md) is a machine made useful on it,
 [awdk](awdk.md) is the agent runtime that spans it, [AitherZero](aitherzero.md) provides
 The mesh is the fabric the rest ride on: [Awconnect](awconnect.md) is the per-machine seam

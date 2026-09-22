@@ -1,7 +1,9 @@
 ---
+name: security-audit
 allowed-tools: Bash, Read, Grep, Glob, WebSearch
 description: Perform comprehensive security audits on code, dependencies, and configurations
 argument-hint: [<target>|--full|--dependencies|--owasp]
+
 ---
 
 ## Context

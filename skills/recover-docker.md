@@ -1,7 +1,9 @@
 ---
+name: recover-docker
 allowed-tools: PowerShell, Bash, Read
 description: Hard-recover Docker Desktop from the WSL2 wedge (API 500 / "did not receive an exit event") and restart exited containers
 argument-hint: [--monitor]
+
 ---
 
 ## Context

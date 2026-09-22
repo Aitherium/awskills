@@ -1,7 +1,9 @@
 ---
+name: github-runner-fleet
 allowed-tools: Bash, Read, Write
 description: Stand up, verify and repair a fleet of self-hosted GitHub Actions runners on one Windows host. Load when CI jobs sit queued while `gh api .../actions/runners` shows an online runner, when adding parallel capacity, when a workflow cannot get a runner, or before deleting any runner registration. Encodes the four failure modes measured 2026-08-12 — three of which each cost a failed attempt — plus the ghost-registration trap that makes a dead runner look like capacity.
 argument-hint: [add N runners | diagnose stuck queue | migrate off a drive]
+
 ---
 
 

@@ -1,3 +1,9 @@
+---
+name: repo-is-not-a-runtime
+description: >-
+  The architecture doctrine for agent-driven repos. Two rules. Both sound obvious. Both are violated by nearly every repo that has had agents working in it for a few months, and the violation is invisible until a disk fills at 3am.
+---
+
 # repo-is-not-a-runtime — the architecture doctrine for agent-driven repos
 
 Two rules. Both sound obvious. Both are violated by nearly every repo that has had

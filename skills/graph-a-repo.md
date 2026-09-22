@@ -1,7 +1,9 @@
 ---
+name: graph-a-repo
 allowed-tools: rag_detect_hardware, rag_resolve_embedder, rag_plan_embedder, rag_apply_embedder, rag_verify_embedder, rag_ingest, rag_verify_retrieval, codegraph_trigger_index, codegraph_search, codegraph_get_context, search_knowledge, Bash, Read
 description: Turn a repository OR a knowledge base into a graph an agent can actually answer from — pick the right embedder, stand it up, ingest, and PROVE both halves work (the vectors are the right dimension AND retrieval returns the ingested content). The operational runbook for the graphrag toolpack; pairs with graph-rag-agent (the toolkit) and aither-codegraph (code structure).
 argument-hint: <path-to-repo-or-docs> [--as code|docs] [--agent <name>] [--serve-embedder]
+
 ---
 
 ## What this does

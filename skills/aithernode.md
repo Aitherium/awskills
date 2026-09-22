@@ -1,3 +1,9 @@
+---
+name: aithernode
+description: >-
+  Awnode — turn a machine's hardware into something your agents can use. awnode is the body of AitherOS. It's a local [MCP](https://modelcontextprotocol.io) server that exposes a machine's real capabilities — GPU/CPU stats, local LLM inference (Ollama / LM Studio), image generation (ComfyUI: Flux, SDXL, Pony), and safe filesystem access — so Aither agents can *act* on that hardware instead of just talking about it. If awdk is the mind, awnode is the hands.
+---
+
 # awnode — turn a machine's hardware into something your agents can use
 
 **awnode is the body of AitherOS.** It's a local [MCP](https://modelcontextprotocol.io) server

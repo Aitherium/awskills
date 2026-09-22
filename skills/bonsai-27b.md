@@ -1,9 +1,18 @@
+---
+name: bonsai-27b
+description: >-
+  Run a 27B model in ~3.8 GB on a plain CPU box. [Bonsai-27B](https://huggingface.co/prism-ml/Bonsai-27B-gguf) (by PrismML) is a 27-billion- parameter model quantized to 1 bit per weight (Q1_0, ~1.1 bit/weight) — the whole thing is a 3.8 GB GGUF that runs on an ordinary CPU with 8 GB of RAM. No GPU, no cloud. This skill takes a spare machine from nothing installed to a live OpenAI-compatible endpoint serving Bonsai.
+---
 # bonsai-27b — run a 27B model in ~3.8 GB on a plain CPU box
 
 [Bonsai-27B](https://huggingface.co/prism-ml/Bonsai-27B-gguf) (by **PrismML**) is a 27-billion-
 parameter model quantized to **1 bit per weight** (`Q1_0`, ~1.1 bit/weight) — the whole thing is a
 **3.8 GB GGUF** that runs on an ordinary CPU with 8 GB of RAM. No GPU, no cloud. This skill takes a
 spare machine from nothing installed to a live OpenAI-compatible endpoint serving Bonsai.
+
+> **Successor:** [bonsai2-27b](bonsai2-27b.md) — Bonsai 2 27B (PTQ1_0 5.9 GB / PQ2_0 7.2 GB,
+> 12 GB+ RAM) is the better model and the one the platform's installers now pick for the 27B
+> tier. This page stays for the 8 GB-class box and for existing Q1_0 deployments.
 
 **One catch:** mainline llama.cpp and Ollama **cannot** load `Q1_0` — the 1-bit format needs
 PrismML's own [llama.cpp fork](https://github.com/PrismML-Eng/llama.cpp) (the `prism` branch). This

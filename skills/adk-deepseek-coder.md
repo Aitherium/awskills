@@ -1,3 +1,9 @@
+---
+name: adk-deepseek-coder
+description: >-
+  Fill-in-the-middle, repo packing, and a reward that can fail. DeepSeek-Coder is two useful things at once, and most people only take the first.
+---
+
 # adk-deepseek-coder — fill-in-the-middle, repo packing, and a reward that can fail
 
 DeepSeek-Coder is two useful things at once, and most people only take the first.

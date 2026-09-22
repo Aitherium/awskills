@@ -1,4 +1,5 @@
 ---
+name: debt-ledger
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, PowerShell
 description: Keep one master tech-debt ledger that actually gets written to — severity tables, collision-free ids via the bundled next_debt_id.py, and the discipline that debt found is debt recorded in the same turn. Includes the stop-hook that blocks finishing a code change without a debt check.
 argument-hint: [add | audit | next-id | install-hook]

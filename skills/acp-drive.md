@@ -1,3 +1,9 @@
+---
+name: acp-drive
+description: >-
+  Drive any external ACP agent from your agent. The Agent Client Protocol lets one agent drive another. When your task needs a different model, a different tool surface, or a sandbox your loop doesn't have, you can hand a sub-problem to an external ACP agent — Claude Code (claude-agent-acp), Codex (codex-acp), Gemini CLI (gemini-cli), or any binary that speaks ACP on stdio — and read back its answer. Your memory, faculties and approval gate stay in charge; the external agent runs its own loop underneath.
+---
+
 # acp-drive — drive any external ACP agent from your agent
 
 The Agent Client Protocol lets one agent drive another. When your task needs a

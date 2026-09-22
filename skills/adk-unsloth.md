@@ -1,3 +1,9 @@
+---
+name: adk-unsloth
+description: >-
+  Local training and serving, wired to your agent. [Unsloth](https://github.com/unslothai/unsloth) trains LoRA/QLoRA 2x faster with ~70% less VRAM and serves GGUF locally. Pairing it with the ADK gives you a loop that runs entirely on your own hardware: your agent serves from a local model, you fine-tune on what it produced, you swap the adapter, you measure again.
+---
+
 # adk-unsloth — local training and serving, wired to your agent
 
 [Unsloth](https://github.com/unslothai/unsloth) trains LoRA/QLoRA 2x faster with ~70%

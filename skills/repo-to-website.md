@@ -1,7 +1,9 @@
 ---
+name: repo-to-website
 allowed-tools: Bash, PowerShell, Read, Write, Edit, WebFetch
 description: Turn any GitHub repo into a real website on GitHub Pages — a proper landing page with your README's content, live at a URL, instead of a raw README. Free.
-argument-hint: [owner/repo] [--docs | --spa <build-dir> | --plain] [--domain example.com]
+argument-hint: "[owner/repo] [--docs | --spa <build-dir> | --plain] [--domain example.com]"
+
 ---
 
 ## Context
