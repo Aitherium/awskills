@@ -317,9 +317,9 @@ to run a persistent node). If [awdk](https://github.com/Aitherium/awdk) is prese
 `adk mesh onboard` the node so your agents use it — one motion, not two projects.
 
 ```bash
-./scripts/omninode-node-up.sh          # build + self-verify P2P discovery
-./scripts/omninode-node-up.sh --listen # run a persistent mesh node
-./scripts/omninode-node-up.sh --adk    # + enroll into AitherMesh for adk agents
+bash scripts/omninode-node-up.sh          # build + self-verify P2P discovery
+bash scripts/omninode-node-up.sh --listen # run a persistent mesh node
+bash scripts/omninode-node-up.sh --adk    # + enroll into AitherMesh for adk agents
 ```
 
 Verified end-to-end on a 12-core Linux box: clone → build → `NODE OK`, P2P discovery live. See
