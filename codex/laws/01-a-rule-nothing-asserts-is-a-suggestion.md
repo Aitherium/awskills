@@ -1,4 +1,4 @@
-# A rule nothing asserts is a suggestion — the first law, and the one the other seventeen depend on
+# A rule nothing asserts is a suggestion — the first law, and the one every other law depends on
 *Part I · Enforcement*
 
 **Fires when:** you write a coding standard, a convention, a "we always…", or a

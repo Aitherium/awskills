@@ -34,7 +34,7 @@ rotting while every dashboard stays green.
 | | |
 |---|---|
 | **[The path](codex/path/00-what-this-actually-is.md)** — 4 chapters, ~1 hour | Never used a coding agent? From nothing to one real, verified change on your own repository. Then local models, then tools/skills/packs. |
-| **[The eighteen laws](codex/README.md#the-eighteen-laws)** | Every one was a real failure first. Grouped into Enforcement · Silence · Adoption · Deployment · Trust. |
+| **[The twenty-four laws](codex/README.md#the-twenty-four-laws)** | Every one was a real failure first. Grouped into Enforcement · Silence · Adoption · Deployment · Trust · Configuration · Scaling. |
 
 The laws in one line each:
 
@@ -56,7 +56,7 @@ The laws in one line each:
 
 **Why this exists.** The failures that cost days do not throw. They return 200, render
 correctly, log nothing, and leave the container healthy — a missing thing is
-indistinguishable from a thing nobody wanted. Eighteen laws is what it took to make a
+indistinguishable from a thing nobody wanted. Twenty-four laws is what it took to make a
 system able to notice.
 
 ## 🧠 Start here — code like this
@@ -124,7 +124,7 @@ Then tell your agent: **"use the aither-start skill"**.
 
 ```
 awskills/
-├── codex/      # the Developer Codex — the reading path + the eighteen laws
+├── codex/      # the Developer Codex — the reading path + the twenty-four laws
 ├── skills/     # skill files (.md) — install into any agent, see `install-skills`
 ├── scripts/    # standalone scripts you can run directly
 ├── tools/      # MCP tools / CLI utilities
@@ -317,9 +317,9 @@ to run a persistent node). If [awdk](https://github.com/Aitherium/awdk) is prese
 `adk mesh onboard` the node so your agents use it — one motion, not two projects.
 
 ```bash
-./scripts/omninode-node-up.sh          # build + self-verify P2P discovery
-./scripts/omninode-node-up.sh --listen # run a persistent mesh node
-./scripts/omninode-node-up.sh --adk    # + enroll into AitherMesh for adk agents
+bash scripts/omninode-node-up.sh          # build + self-verify P2P discovery
+bash scripts/omninode-node-up.sh --listen # run a persistent mesh node
+bash scripts/omninode-node-up.sh --adk    # + enroll into AitherMesh for adk agents
 ```
 
 Verified end-to-end on a 12-core Linux box: clone → build → `NODE OK`, P2P discovery live. See
@@ -335,7 +335,7 @@ motion, not five projects.
 |-------|-----------------|
 | [`awdk`](skills/awdk.md) | The agent toolkit — `pip install awdk` → `adk onboard --quick` → `adk run`. Your model, your loop, your data on your box; manage from the portal. |
 | [`aither-discord-agent`](skills/aither-discord-agent.md) | Deploy any awdk agent as a **Discord bot** with one automated onboarding command — `adk onboard --discord` installs your pack, validates the bot token live, prints the invite link, verifies identity/tools, and launches. Every DM/@mention runs your agent's own loop. No paid tier needed (hand-rolled fallback). |
-| [`awnode`](skills/awnode.md) | The *body* — a local MCP server (`adk mcp node`) exposing GPU, local inference, ComfyUI, and files to agents; or bootstrap the box as a full inference node. |
+| [`awnode`](skills/aithernode.md) | The *body* — a local MCP server (`adk mcp node`) exposing GPU, local inference, ComfyUI, and files to agents; or bootstrap the box as a full inference node. |
 | [`aitherconnect`](skills/aitherconnect.md) | The seam — `adk connect` / `adk mesh onboard` (`--headscale` behind NAT) to wire a machine, agent, and browser into AitherOS and the mesh. |
 | [`aitherzero`](skills/aitherzero.md) | The provisioner — one `config.psd1` + `bootstrap.ps1` to stand up bare-metal/on-prem/cloud/hybrid, with a generated-from-inventory config editor and `az_*` agent tools. |
 | [`aithermesh`](skills/aithermesh.md) | The fabric — one playbook (`Invoke-AitherPlaybook deploy-mesh-agent`) to create a private WireGuard mesh, join nodes to the overlay, and deploy agents onto them; nodes defined in `config/nodes.yaml`. |
@@ -359,6 +359,104 @@ Generic, project-agnostic slash commands — pure prompt-skills, no code or depe
 | [`performance`](skills/performance.md) | Profile and optimize: `cProfile`/`memory_profiler`, hotspot hunting, caching, N+1 queries, algorithmic complexity. Measure first. |
 | [`refactor`](skills/refactor.md) | Apply clean-code refactors — extract method, replace conditionals with polymorphism, simplify nested logic — without changing behavior. |
 | [`compare-versions`](skills/compare-versions.md) | Diff two versions of a file/commit/release: structural + behavioral changes, breaking-change risk, and a migration checklist. |
+
+## Every skill in the pack
+
+The tables above are the guided tour. This one is the inventory: every published
+skill, one line each, generated from the skill's own frontmatter so it cannot fall
+behind the directory.
+
+<!-- skill-catalog:start GENERATED from skills/*.md frontmatter. Edit the skill files, not this table. -->
+| Skill | What it is |
+|---|---|
+| [`acp-drive`](skills/acp-drive.md) | Drive any external ACP agent from your agent. |
+| [`acp-serve`](skills/acp-serve.md) | Expose an AitherOS agent to ACP editors. |
+| [`adk-deepseek-coder`](skills/adk-deepseek-coder.md) | Fill-in-the-middle, repo packing, and a reward that can fail. |
+| [`adk-harnesses`](skills/adk-harnesses.md) | One shell that drives every coding shell. |
+| [`adk-unsloth`](skills/adk-unsloth.md) | Local training and serving, wired to your agent. |
+| [`adversarial-verification`](skills/adversarial-verification.md) | Stop grading your own homework. |
+| [`agent-disk-hygiene`](skills/agent-disk-hygiene.md) | Your coding agents are quietly eating your disk. |
+| [`agent-integrations`](skills/agent-integrations.md) | Integrate awdk and AitherOS with mainstream coding agent harnesses (Claude Code, Cursor, Aider, Cline, Codex, Hermes, Roo Code) — both as a CLIENT of cloud providers (OpenRouter, DeepSeek, Anthropic, Moonshot) and as a … |
+| [`agent-operating-doctrine`](skills/agent-operating-doctrine.md) | The standing instructions, tool order and hook wiring one team runs its coding agents under -- no false blockers, a 150-word report cap, search-then-graph, awgit in a shared worktree, and the PreToolUse/Stop gates that … |
+| [`agents-everywhere`](skills/agents-everywhere.md) | Turn an agent idea into a verified, shareable Aitherium tool across awdk, awsh, MCP, WebMCP, PWA, Codex, Claude Code, and other agent CLIs. |
+| [`aither-agent-notebook`](skills/aither-agent-notebook.md) | Turn 'build X' into a reviewable, re-runnable plan. |
+| [`aither-code-intelligence`](skills/aither-code-intelligence.md) | Stand up agent code-search, and prove it actually works. |
+| [`aither-codegraph`](skills/aither-codegraph.md) | A call-graph-aware code index your agents can query. |
+| [`aither-discord-agent`](skills/aither-discord-agent.md) | Deploy your awdk agent as a Discord bot (automated onboarding). |
+| [`aither-headroom`](skills/aither-headroom.md) | Cut agent token cost with reversible context compression. |
+| [`aither-powered-coding`](skills/aither-powered-coding.md) | Set up any coding agent (Claude Code, Cursor, Aider, Cline) to use AitherOS as its brain — with automatic model switching, 1272 MCP tools, managed agent dispatch, and transparent failover between DeepSeek/Kimi/local … |
+| [`aither-prospector`](skills/aither-prospector.md) | A semantic file-explorer that tells agents WHERE to look. |
+| [`aither-retrieval`](skills/aither-retrieval.md) | Aither Retrieval — one surface, every modality. |
+| [`aither-start`](skills/aither-start.md) | Zero-to-working-agent on your own machine, for someone who has never written code. |
+| [`aitherconnect`](skills/aitherconnect.md) | Awconnect — wire your machine, agent, and browser into AitherOS. |
+| [`aithermesh`](skills/aithermesh.md) | Stand up a private mesh and onboard nodes + agents to it. |
+| [`aithernode`](skills/aithernode.md) | Awnode — turn a machine's hardware into something your agents can use. |
+| [`aitherzero`](skills/aitherzero.md) | Provision any machine from one config file and a library of numbered PowerShell automation-scripts. |
+| [`awconnect`](skills/awconnect.md) | Wire your machine, agent, and browser into AitherOS. |
+| [`awdk`](skills/awdk.md) | Run your own AI agent, on your machine, in three commands. |
+| [`awembed`](skills/awembed.md) | Train an embedding model that knows your corpus. |
+| [`awgit-claude-code`](skills/awgit-claude-code.md) | The awgit workflow for Claude Code / an Aither adk agent — how to work when every commit is captured as a semantic edit-op: what to check after a commit, how to read the attribution ledger, how to teleport deltas to a … |
+| [`awgit-setup`](skills/awgit-setup.md) | Set up awgit (Aither World-Graph git) on a machine — the semantic version-control layer that turns every git commit into a function-level edit-op with a verified GitHub identity, a durable attribution record, and … |
+| [`awknowledge`](skills/awknowledge.md) | Install a measured operating doctrine for running an agentic coding tool at program scale — prompt shape, live-proof gates, plan documents, persistent memory, delegation, compaction and model routing. |
+| [`bonsai-27b`](skills/bonsai-27b.md) | Run a 27B model in ~3.8 GB on a plain CPU box. |
+| [`bonsai2-27b`](skills/bonsai2-27b.md) | Serve PrismML's Bonsai 2 27B (Ternary-Bonsai-2-27B, PTQ1_0 5.9 GB or PQ2_0 7.2 GB) as an OpenAI-compatible endpoint with the PrismML llama.cpp fork. |
+| [`character-forge`](skills/character-forge.md) | Character Forge — consistent characters, animation, talking avatars. |
+| [`claude-model-switcher`](skills/claude-model-switcher.md) | Switch Claude Code between DeepSeek (native 1M context), Kimi, local AitherOS models, and stock Anthropic — one command, no manual config. |
+| [`code-like-david`](skills/code-like-david.md) | Renamed to `awknowledge`. |
+| [`compare-versions`](skills/compare-versions.md) | Compare two versions of a file, commit, or release and report structural and behavioral diffs |
+| [`concurrent-safe-git`](skills/concurrent-safe-git.md) | Commit safely in a worktree you do NOT have to yourself — several agents, a teammate, and a maintenance loop all editing and committing at once. |
+| [`debt-ledger`](skills/debt-ledger.md) | Keep one master tech-debt ledger that actually gets written to — severity tables, collision-free ids via the bundled next_debt_id.py, and the discipline that debt found is debt recorded in the same turn. |
+| [`decision-cards`](skills/decision-cards.md) | Decision Cards — structured asks that actually reach the owner. |
+| [`deer-flow`](skills/deer-flow.md) | Run ByteDance's DeerFlow — a LangGraph-based super-agent harness for autonomous research, coding and content creation with sub-agents, persistent memory and sandboxed execution. |
+| [`dependencies`](skills/dependencies.md) | Manage project dependencies, check for updates, and scan for vulnerabilities |
+| [`dgx-spark-deepseek-v4`](skills/dgx-spark-deepseek-v4.md) | A 284B model at ~30 tok/s on one desk machine. |
+| [`do-my-taxes`](skills/do-my-taxes.md) | Do My Taxes — personal tax preparation workflow. |
+| [`docker-network-ops`](skills/docker-network-ops.md) | Diagnose container DNS and networking without fooling yourself. |
+| [`docker-wsl2-build-safety`](skills/docker-wsl2-build-safety.md) | Stop bulk builds from killing Docker Desktop (and don't blame the disk). |
+| [`docker-wsl2-disk-reclaim`](skills/docker-wsl2-disk-reclaim.md) | Your drive is full and `docker system df` is lying to you. |
+| [`event-loop-debugger`](skills/event-loop-debugger.md) | Detect, pin, and fix asyncio event-loop stalls in Python services — a synchronous call or CPU-bound work blocking the loop — including on the free-threaded python3.14t build where py-spy and gdb fail. |
+| [`fail-closed-authz`](skills/fail-closed-authz.md) | Review auth, tenancy, entitlement and cache-sharing code against six fail-closed defect classes that ruff and mypy cannot see — four checked mechanically by the bundled security_lint.py, three semantic ones you read … |
+| [`finetune-that-improves`](skills/finetune-that-improves.md) | Train your own model without making it worse. |
+| [`floci-local-cloud`](skills/floci-local-cloud.md) | Exercise cloud automation (AWS/Azure/GCP/OCI) against local MIT-licensed emulators instead of real accounts — no credentials, no credit burn, no live instance at risk. |
+| [`github-actions-image-pipeline`](skills/github-actions-image-pipeline.md) | Run GitHub Actions image pipelines without rebuilding the same images on every push, or paying an hour-long cold build for a typo. |
+| [`github-agentic-c2`](skills/github-agentic-c2.md) | Use GitHub as the control plane for autonomous agents — issues as the task queue, PRs as the review gate, git as the conflict-resolution protocol, Actions on self-hosted runners as your own compute, and Projects as the … |
+| [`github-artifact-quota`](skills/github-artifact-quota.md) | The storage limit that silently freezes your deploys. |
+| [`github-runner-fleet`](skills/github-runner-fleet.md) | Stand up, verify and repair a fleet of self-hosted GitHub Actions runners on one Windows host. |
+| [`gpu-vram-attribution`](skills/gpu-vram-attribution.md) | When the platform cannot tell you who is using the GPU. |
+| [`graph-a-repo`](skills/graph-a-repo.md) | Turn a repository OR a knowledge base into a graph an agent can actually answer from — pick the right embedder, stand it up, ingest, and PROVE both halves work (the vectors are the right dimension AND retrieval returns … |
+| [`graph-rag-agent`](skills/graph-rag-agent.md) | Build a knowledge graph and an agent that owns it. |
+| [`hermes-agent`](skills/hermes-agent.md) | Install Nous Research's Hermes agent and run it on your own model — a self-improving agent with persistent memory, autonomous skill creation, cron automation and multi-platform messaging. |
+| [`hetzner-fleet`](skills/hetzner-fleet.md) | Provision bare metal and VPS directly into your mesh from Hetzner Cloud. |
+| [`install-skills`](skills/install-skills.md) | Install this skill pack into whatever agent you already use — Claude Code, OpenClaw, Hermes, Cursor, Goose, Codex, Gemini CLI, or any Agent-Skills-compatible client. |
+| [`local-image-generation`](skills/local-image-generation.md) | Give an agent the ability to draw — generating images on the machine it is already running on, via ComfyUI, Sana, SD.Next/A1111 or an in-browser model. |
+| [`local-inference`](skills/local-inference.md) | Run a language model on your own hardware for free — pick the right backend (Ollama, llama.cpp, or vLLM) for the machine you actually have, download and quantize a model that fits in memory, serve it on an … |
+| [`moat-guard`](skills/moat-guard.md) | Open-core release hygiene — verify a build doesn't leak private code before publishing, and purge leaks that already shipped (GitHub releases/tags/history + index yank list) |
+| [`model-fitness-benchmark`](skills/model-fitness-benchmark.md) | Decide whether a candidate model is fit to run an agent stack, using hard oracles instead of vibes or vendor tables. |
+| [`model-quantization`](skills/model-quantization.md) | Quantize an LLM to 4-bit with AutoRound — RTN runs free on local CPU+GPU; keeps lm_head/projectors in bf16 and dodges the new-architecture crashes |
+| [`nvidia-cuda-mcp`](skills/nvidia-cuda-mcp.md) | Give your agent current CUDA knowledge. |
+| [`ods`](skills/ods.md) | Stand up ODS (Osmantic Deployment System) — one installer that turns a PC, Mac, or Linux box into a private AI server with local LLM inference, a chat UI, voice, agents, workflow automation, RAG and image generation, … |
+| [`omninode-node`](skills/omninode-node.md) | Join the OmniNode P2P inference mesh in one command. |
+| [`openclaw`](skills/openclaw.md) | Install OpenClaw (the local-first personal AI assistant) and wire it to your own hardware — point it at a local model instead of a paid API, connect the AitherOS toolset over MCP with one command, and install this skill … |
+| [`performance`](skills/performance.md) | Analyze and optimize application performance, identify bottlenecks |
+| [`pooled-inference`](skills/pooled-inference.md) | Run a model no single box can hold, across every tier you own. |
+| [`prove-it-live`](skills/prove-it-live.md) | The verification standard — green tests, a 200, and "deployed" are not proof. |
+| [`purecss-art`](skills/purecss-art.md) | Generate realistic illustrations hand-coded entirely in HTML + CSS (the Diana Smith / "cyanharlow" technique — absolute-positioned divs, gradients, layered box-shadow, clip-path, transforms; no images, no SVG, no … |
+| [`ramble-driven-development`](skills/ramble-driven-development.md) | Stop writing careful prompts. |
+| [`recover-docker`](skills/recover-docker.md) | Hard-recover Docker Desktop from the WSL2 wedge (API 500 / "did not receive an exit event") and restart exited containers |
+| [`refactor`](skills/refactor.md) | Refactor code to improve structure, readability, and maintainability |
+| [`repo-intake`](skills/repo-intake.md) | Turn "I found this GitHub repo — integrate/adapt/adopt it" into a decided, recorded outcome instead of another unread folder in a research folder. |
+| [`repo-is-not-a-runtime`](skills/repo-is-not-a-runtime.md) | The architecture doctrine for agent-driven repos. |
+| [`repo-to-website`](skills/repo-to-website.md) | Turn any GitHub repo into a real website on GitHub Pages — a proper landing page with your README's content, live at a URL, instead of a raw README. |
+| [`resume-all`](skills/resume-all.md) | Reopen your killed Claude Code sessions — snapshot before a reboot, restore after, or pick from every project and resume as terminal tabs or tmux windows |
+| [`safe-bulk-rename`](skills/safe-bulk-rename.md) | Rename a token across hundreds or thousands of files in this shared worktree — a package, a directory, a product name — without corrupting load-bearing strings, without committing a peer's in-flight work, and without … |
+| [`secretguard`](skills/secretguard.md) | Scan for leaked secrets and purge them from git history |
+| [`security-audit`](skills/security-audit.md) | Perform comprehensive security audits on code, dependencies, and configurations |
+| [`ship-an-app-free`](skills/ship-an-app-free.md) | Take an idea to a working app at a public URL using only free tiers — GitHub Pages for the site, GitHub Actions for the build, and a free serverless backend when the app needs one. |
+| [`split-inference`](skills/split-inference.md) | Shard ONE model across MULTIPLE machines' GPUs with llama.cpp RPC — build with -DGGML_RPC=ON, start rpc-server on the backend hosts, launch the main server with --rpc, and PROVE the split is real instead of a silent … |
+| [`tau`](skills/tau.md) | Install and run Tau, a minimalist terminal coding agent in Python — point it at your own local model via ~/.tau/catalog.toml instead of a paid API, install this skill pack into its skills directory, and use the /skill: … |
+| [`website-as-code`](skills/website-as-code.md) | Deploy a website as code — GitHub Pages frontend + Cloudflare Tunnel backend on any machine + an automated never-show-a-raw-error fallback. |
+| [`xy-charts`](skills/xy-charts.md) | Render data charts (line/scatter/bar/heatmap/pie/histogram/density) to PNG/SVG/JPEG/WebP/PDF or self-contained interactive HTML via the xy engine — for metrics, benchmarks, report figures, dashboard panels, and any … |
+<!-- skill-catalog:end -->
 
 ## Standalone tools
 
@@ -390,7 +488,7 @@ More agent-ops glue is on the way. Star the repo to follow along — and PRs/iss
 
 ## License
 
-[MIT](./LICENSE) © Aitherium. Use it, fork it, ship it.
+[MIT](https://github.com/Aitherium/awskills/blob/main/LICENSE) © Aitherium. Use it, fork it, ship it.
 
 <!-- aither-ecosystem:start GENERATED from the ecosystem registry. Edits here are overwritten; change the registry instead. -->
 

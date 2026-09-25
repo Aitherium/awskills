@@ -157,5 +157,5 @@ relevant. Anything procedural belongs in a skill, not in `TOOLS.md`.
 ## Next
 
 - **[`hermes-agent`](hermes-agent.md)** — the same wiring for Nous Research's Hermes
-- **[`awnode`](awnode.md)** — expose this machine's GPU/files to OpenClaw over MCP
+- **[`awnode`](aithernode.md)** — expose this machine's GPU/files to OpenClaw over MCP
 - **[`ship-an-app-free`](ship-an-app-free.md)** — have it build and deploy something

@@ -55,9 +55,7 @@ your fleet can route to its inference and capabilities. `adk doctor` reports gat
 ## Part of one substrate
 
 awconnect is the seam between a local box and the wider fabric: it links an
-[awnode](awnode.md) to the control plane, lets [awdk](awdk.md) agents reach it,
-Awconnect is the seam between a local box and the wider fabric: it links an
-[AitherNode](aithernode.md) to the control plane, lets [awdk](awdk.md) agents reach it,
+[awnode](aithernode.md) to the control plane, lets [awdk](awdk.md) agents reach it,
 and rides the same mesh that [OmniNode](omninode-node.md) uses to pool compute — while
 [AitherZero](aitherzero.md) provisions what's underneath. One motion, not five.
 
