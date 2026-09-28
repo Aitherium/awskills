@@ -154,5 +154,5 @@ the platform toolset — connect an MCP server too:
 
 - **[`openclaw`](openclaw.md)** — `aither integrate openclaw`, automated
 - **[`hermes-agent`](hermes-agent.md)** — merge one config block
-- **[`awnode`](awnode.md)** — expose this machine's hardware to any MCP-capable agent
+- **[`awnode`](aithernode.md)** — expose this machine's hardware to any MCP-capable agent
 - **[`awdk`](awdk.md)** — the full toolkit

@@ -133,7 +133,7 @@ You now have an agent that can run code. Use it:
 ## Step 6 — optional: let others use your spare compute
 
 If your machine has a GPU that idles, it can serve inference to the mesh and earn settlement
-for it: **[`omninode-node`](omninode-node.md)** and **[`awnode`](awnode.md)**. Entirely
+for it: **[`omninode-node`](omninode-node.md)** and **[`awnode`](aithernode.md)**. Entirely
 optional and off by default — nothing joins a network unless you run the command.
 
 ---

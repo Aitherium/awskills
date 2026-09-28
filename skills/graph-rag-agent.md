@@ -67,7 +67,7 @@ adk chat research                       # "what changed since last week?" — it
 
 ## Part of one substrate
 
-The agent runs on [awdk](awdk.md), the graph lives on an [awnode](awnode.md) you
+The agent runs on [awdk](awdk.md), the graph lives on an [awnode](aithernode.md) you
 own, point it at a local model (see [bonsai-27b](bonsai-27b.md) for a CPU-friendly one), and share
 the assistant across a fleet over [AitherMesh](aithermesh.md).
 

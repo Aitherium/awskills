@@ -67,8 +67,7 @@ self-hosted nodes are uncapped by default — caps only apply on the metered hos
 
 ## Part of one substrate
 
-awdk is the runtime the rest plug into: stand up hardware as an [awnode](awnode.md),
-awdk is the runtime the rest plug into: stand up hardware as an [AitherNode](aithernode.md),
+awdk is the runtime the rest plug into: stand up hardware as an [awnode](aithernode.md),
 wire it to the control plane with [Awconnect](awconnect.md), provision the box with
 [AitherZero](aitherzero.md), and pool compute across machines with
 [OmniNode](omninode-node.md) over AitherMesh. Standing up compute and having your agents use it

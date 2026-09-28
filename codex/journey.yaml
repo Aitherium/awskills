@@ -1,0 +1,383 @@
+# The Path — the Aither World Guide's journey manifest.
+#
+# This file is the ONE source for the order of the guide and for every command
+# the guide tells a reader to type. The prose for each chapter lives beside it
+# in path/<id>.md (sections "## Teach" and "## Do"); the generator
+# (tools/guide_pages.py, called by tools/gen_public_pages.py) renders the two
+# side by side. Nothing here is advisory: the guide-journey checker (check_guide_journey.py)
+# asserts it (GJ001-GJ005) on every PR and in the publish lane.
+#
+#   requires:  earlier chapters only (GJ001) - the reader never needs a later one
+#   installs:  commands this chapter puts on the reader's PATH; a later chapter
+#              may use them, an earlier one may not (GJ001)
+#   bricks:    registered ids from the ecosystem registry (ecosystem.yaml); must be
+#              public unless the chapter says `status: preview` (GJ003)
+#   do[].cmd:  a REAL console script + registered subcommand (GJ002); the check
+#              reads awdk/pyproject.toml + adk/cli.py and awsh's main.ts, never a
+#              hand-kept list
+#
+# Every chapter ends with done_check: one command whose output tells the reader
+# they are finished. A chapter a reader cannot prove they finished is a chapter
+# they will re-do.
+
+version: 1
+site:
+  title: The Aither World Guide
+  tagline: From "what is an agent?" to a terminal that answers you - one path, nothing skipped.
+  url: https://aitherium.github.io/awknowledge/
+
+chapters:
+  - id: 00-welcome
+    title: Welcome to Aither World
+    blurb: What Aitherium, AitherOS and the aw* bricks are - in plain words, before you install anything.
+    persona: stranger
+    minutes: 5
+    requires: []
+    bricks: [awknowledge, awdk, awnix]
+    installs: []
+    do: []
+    done_check: null
+    learned:
+      - An agent is a program that can take actions, not just answer.
+      - A brain is the model behind it; Bonsai and our 8B orchestrator model are ours and they are open.
+      - '"aw" means Aither World - every brick name is a phrase: awdk is Aither World Dev Kit.'
+
+  - id: 01-install-awdk
+    title: Install awdk
+    blurb: One command puts the whole kit on your machine. Then you check it worked.
+    persona: stranger
+    minutes: 10
+    requires: [00-welcome]
+    bricks: [awdk]
+    installs: [adk, awdk]
+    do:
+      - cmd: pip install awdk
+        expect: "Successfully installed awdk"
+        if_not: "If `pip` is not found, install Python from python.org first (tick 'Add to PATH'), then open a NEW terminal and try again - or use one of the two one-liners below, which install Python for you."
+      - cmd: curl -fsSL https://aitherium.com/install.sh | sh
+        optional: true
+        expect: "macOS / Linux only - the installer walks through Python, the kit and a first check"
+        if_not: "Skip this if `pip install awdk` already worked; it is the same kit."
+      - cmd: irm https://aitherium.com/install.ps1 | iex
+        optional: true
+        expect: "Windows only (PowerShell) - the same installer"
+        if_not: "Skip this if `pip install awdk` already worked."
+      - cmd: adk wizard
+        expect: "a short questionnaire; answer with Enter to accept the defaults"
+        if_not: "If `adk` is not found, close the terminal and open a new one - the install changed your PATH and the old window does not know."
+      - cmd: adk doctor
+        expect: "every line ends in OK (a WARN about a cloud login is fine - we have not logged in yet)"
+        if_not: "Read the first line that is not OK; it names the fix. Nothing below it matters until that one is green."
+    done_check:
+      cmd: adk doctor
+      expect: "no FAIL lines"
+    learned:
+      - pip installs Python programs; awdk is one.
+      - The wizard writes a small config in your home folder (~/.aither/). Nothing else changes.
+      - "`adk doctor` is the question you ask whenever something is odd: it checks, it does not guess."
+
+  - id: 02-first-brain
+    title: Your first local brain
+    blurb: Run an open model on your own computer, offline. Learn what "8B" and "1-bit" actually mean.
+    persona: stranger
+    minutes: 20
+    requires: [01-install-awdk]
+    bricks: [awdk]
+    installs: []
+    do:
+      - cmd: adk quickstart-local
+        expect: "five numbered steps, [1/5] Detecting hardware... through [5/5], then `Config saved:` and an endpoint such as http://localhost:8200/v1"
+        if_not: "Each step prints what it is doing. If step 3 fails to download, check your disk has 6 GB free and run the same command again - the download resumes where it stopped."
+        note: "This picks the fastest backend your machine has (llama.cpp on a plain CPU, Ollama if you already have it, vLLM on NVIDIA + Docker), downloads an open GGUF model sized for your RAM, checks it answers, and saves the endpoint. The first run downloads several GB; later runs are instant."
+      - cmd: adk bonsai-local
+        optional: true
+        expect: "Starting Bonsai-27B ... and a healthy endpoint on port 8090. If the container image is not on your machine yet, it BUILDS it first from PrismML's public sources - a 3.8 GB download plus a compile, up to ~40 minutes once, seconds ever after."
+        if_not: "This one needs Docker Desktop and the Bonsai container image. Without them, skip - the brain from the previous step is already running. Bonsai is explained on the left; you can come back for it."
+        note: "Bonsai-27B is a 27-billion-parameter model squeezed to about one bit per weight - 3.8 GB, runs on a CPU with 8 GB RAM. The 1-bit format needs PrismML's own llama.cpp build, which is why it ships as a container."
+    done_check:
+      cmd: adk backend status
+      expect: "Backend: llamacpp (or ollama / vllm) and Endpoint: http://localhost:... - the brain the kit will use from now on"
+    learned:
+      - A model is a file of numbers; the server loads it and answers requests on a port.
+      - '"8B" is eight billion of those numbers; quantization stores each in fewer bits so it fits in less memory.'
+      - The brain is now on YOUR machine. Unplug the network - it still answers.
+
+  - id: 03-talk-to-it
+    title: Talk to it
+    blurb: Ask your brain one question, then open a chat. Optionally connect to the cloud for the bigger brains.
+    persona: stranger
+    minutes: 15
+    requires: [02-first-brain]
+    bricks: [awdk]
+    installs: []
+    do:
+      - cmd: adk backend test
+        expect: "Provider: ..., a one-line Response: from your brain, and Status: OK"
+        if_not: "If it says FAILED, the brain from chapter 2 is not running. `adk quickstart-local` again restarts it; `adk backend status` shows what the kit expects to find."
+      - cmd: adk start
+        expect: "a small banner - Workspace, Directory, LLM: your local brain and its address - then a `You >` prompt. Type a question; type /quit to leave."
+        if_not: "If the LLM line names the cloud or says nothing was found, the brain is down - see the step above. Run `adk start` inside any folder; it reads that folder so it can answer questions about it."
+        note: "`adk start` is a chat with your brain that also knows the folder you ran it in. Python files get indexed, so 'what does this project do?' gets a real answer."
+      - cmd: adk login
+        optional: true
+        expect: "a short code and a URL; open the URL, type the code, come back - Logged in as ..."
+        if_not: "Logging in is optional. It connects you to hosted brains and your workspace. Stay local if you prefer - everything in the next chapters works offline too."
+      - cmd: adk whoami
+        optional: true
+        expect: "your account, or Not logged in"
+        if_not: "Both answers are fine. This just tells you which you are."
+    done_check:
+      cmd: adk backend test
+      expect: "Status: OK"
+    learned:
+      - A prompt is a request; the brain's answer depends on what it was given, which is why chapter 4 gives it tools.
+      - "Local vs cloud is a choice you make per task, not once: `adk backend status` shows which is current."
+      - Your login is a device code you type into a web page, never a password typed into a terminal.
+
+  - id: 04-build-an-agent
+    title: Build your first agent
+    blurb: An agent is a brain plus tools plus a job. You will scaffold one in three files and watch it use a tool.
+    persona: hands-on
+    minutes: 30
+    requires: [03-talk-to-it]
+    bricks: [awdk, awskills]
+    installs: []
+    do:
+      - cmd: adk init my-agent
+        expect: "Created AitherADK project at my-agent/ with three files - agent.py (your agent), config.yaml (its settings), tools.py (its custom tools) - and Next steps"
+        if_not: "If it says the folder exists and is not empty, pick another name. init never overwrites."
+      - cmd: cd my-agent
+        expect: "your prompt now shows the my-agent folder"
+        if_not: "The next commands must run inside the folder init created."
+      - cmd: python agent.py
+        expect: "one greeting reply, printed by your agent - agent.py asks it to say hello, and the agent has a hello tool to do it with"
+        if_not: "If it cannot reach a brain, chapter 2's brain is down: `adk backend test` tells you. If `python` is not found, try `python3`."
+        note: "Read agent.py before you run it - it is about twenty lines. The @agent.tool decorator is what turns a plain function into something the brain may call."
+      - cmd: adk run
+        optional: true
+        expect: "Starting AitherADK server - identity: my-agent, port: 8080 - then it keeps running; press Ctrl+C to stop"
+        if_not: "If port 8080 is busy, `adk run --port 8081`. Running as a server is how other programs (and chapter 5's packs) talk to your agent; for now the direct run above is enough."
+    done_check:
+      cmd: python agent.py
+      expect: "a reply from your agent"
+    learned:
+      - An agent is three files - the agent, its config, its tools - and config.yaml is the job description (which brain, which packs, what port).
+      - A tool is an ordinary function with a decorator; the brain decides when to call it.
+      - "`python agent.py` runs it once; `adk run` keeps it serving so other things can reach it."
+
+  - id: 05-agent-packs
+    title: Agent packs
+    blurb: Someone already built the agent you want. Find it, install it, run it - and know what is still coming.
+    persona: hands-on
+    minutes: 15
+    requires: [04-build-an-agent]
+    bricks: [awdk, awskills, awpack]
+    status: preview
+    installs: []
+    do:
+      - cmd: adk packs
+        expect: "Available Agent Packs - a short table (analyst, claude-code, code-discipline, gobbonet, hermes, openclaw) and Install with: adk install pack:<name>"
+        if_not: "An empty table means the kit did not install completely. `pip install --force-reinstall awdk` restores the bundled packs."
+      - cmd: adk install pack:openclaw
+        expect: "Installing openclaw... then Installed to: <a folder in your home directory> and Next steps"
+        if_not: "The name must match a row from `adk packs` exactly - `pack:openclaw`, lower case."
+      - cmd: adk run --agents openclaw
+        expect: "Starting AitherADK fleet server - agents: openclaw, port: 8080 - the pack's agent is now serving; Ctrl+C stops it"
+        if_not: "If port 8080 is busy, add --port 8081. If it says the agent is unknown, the install step did not finish - read its last line."
+    done_check:
+      cmd: adk run --agents openclaw
+      expect: "Starting AitherADK fleet server - agents: openclaw"
+    learned:
+      - A pack is an agent in a box - brain settings, tools, skills - that installs in one command.
+      - Packs ship inside awdk today; the public pack registry (awpack) is being built, and this page says so until it is not.
+      - Skills are smaller than packs - one procedure each - and live in awskills.
+
+  - id: 06-your-own-hardware
+    title: Your own hardware
+    blurb: CPU or GPU, laptop or rack - how the open model stack picks a model for what you have, and how a brain gets registered.
+    persona: operator
+    minutes: 30
+    requires: [02-first-brain, 03-talk-to-it]
+    bricks: [awdk, awnode]
+    installs: []
+    do:
+      - cmd: adk quickstart
+        expect: "hardware detected, a recommended setup for it, and a running backend"
+        if_not: "On a machine with no GPU this is the same as chapter 2 and says so. On NVIDIA it offers vLLM if Docker is present."
+      - cmd: adk backend status
+        expect: "Backend, Endpoint and Model - the brain the kit is currently pointed at"
+        if_not: "If it says not configured, chapter 2 did not finish - run `adk quickstart-local` first."
+      - cmd: adk up
+        optional: true
+        expect: "your agent deployed as a service on this box, enrolled with your workspace, a heartbeat every 60 s"
+        if_not: "Needs a login (chapter 3) and Docker. Without either, `adk run` from chapter 4 is the offline equivalent."
+    done_check:
+      cmd: adk backend status
+      expect: "the backend you chose, with an Endpoint that answers"
+    learned:
+      - Model size must fit memory; the kit measures your RAM/VRAM and picks, it does not ask you to know.
+      - Our open 8B orchestrator model is the brain the platform itself runs on; Bonsai is the 1-bit family for tiny machines.
+      - Registering a backend is what lets agents anywhere use it - a brain nobody registered is a brain nobody can reach.
+
+  - id: 07-deploy-on-awnix
+    title: Deploy on awnix
+    blurb: An immutable Linux built for machines where software writes software. Your agent becomes three lines in a Dockerfile.
+    persona: operator
+    minutes: 45
+    requires: [04-build-an-agent, 06-your-own-hardware]
+    bricks: [awnix, awdk]
+    installs: []
+    do:
+      - cmd: git clone https://github.com/Aitherium/awnix
+        expect: "a folder named awnix with a Containerfile inside"
+        if_not: "Install git (git-scm.com) and open a new terminal."
+      - cmd: cd awnix
+        expect: "your prompt shows the awnix folder; the build below runs here"
+        if_not: "The Containerfile is in this folder; the build must run from inside it."
+      - cmd: podman build -t awnix:latest -f Containerfile .
+        expect: "an image named awnix:latest, built from the awnix repo you cloned"
+        if_not: "Install podman (or Docker - `docker build` works the same). Clone https://github.com/Aitherium/awnix first and run this inside it."
+      - cmd: podman run --rm awnix:latest awgit --version
+        expect: "a version - proof the aw* tools are preinstalled in the base"
+        if_not: "If the command is not found inside the image, the build used a different Containerfile. Rebuild from the repo root."
+      - cmd: bootc status
+        optional: true
+        expect: "on a machine BOOTED from the image: the running image and the rollback target"
+        if_not: "Only meaningful on a box that booted from awnix (the ISO or a cloud image). Inside a container it is absent, and that is expected."
+    done_check:
+      cmd: podman run --rm awnix:latest awgit --version
+      expect: "a version string"
+    learned:
+      - Immutable means /usr cannot change at runtime; every change is a new image you can diff and roll back.
+      - No password exists on the box; keys only. NOPASSWD sudo is what makes key-only login usable.
+      - Your agent layers ON TOP (FROM awnix, pip install awdk, add your pack) - the guarantees stay in the base.
+
+  - id: 08-many-agents
+    title: Many agents, one repo
+    blurb: Two agents editing the same code without sweeping each other's work - leases, a call graph, messaging, memory.
+    persona: operator
+    minutes: 30
+    requires: [04-build-an-agent]
+    bricks: [awgit, awgraph, awrelay, awm]
+    installs: [awgit, awgraph, awrelay, awm]
+    do:
+      - cmd: pip install awgit awgraph awrelay awm
+        expect: "four packages installed"
+        if_not: "Install them one at a time to see which fails; each is independent."
+      - cmd: awgit lease acquire README.md
+        expect: "a lease on the file, with its holder and expiry"
+        if_not: "Run it inside a git repository. A lease is about a file in a repo."
+      - cmd: awgraph query "who calls main"
+        expect: "a list of callers, or 'no index yet' with the command to build one"
+        if_not: "Build the index first with the command it prints; the graph is derived from your code, not downloaded."
+      - cmd: awrelay send "#general" "hello from the guide" --kind note
+        expect: "message delivered, with a channel and an id"
+        if_not: "awrelay needs a relay endpoint (your own, or the hosted one after chapter 3's login). The error names which is missing."
+    done_check:
+      cmd: awgit lease list
+      expect: "the lease you took, still held"
+    learned:
+      - A lease says "I am editing this"; it expires, so a crashed agent cannot hold a file forever.
+      - A call graph answers "who calls this" without reading everything.
+      - Messages between agents go through a channel a human can read too - that is how decisions stop being relitigated.
+      - "The laws (Reference > Laws) are WHY each of these exists: every one was a real failure first."
+
+  - id: 09-omnibox
+    title: The omnibox
+    blurb: Your terminal answers you. Type a question where a command would go.
+    persona: stranger
+    minutes: 10
+    requires: [01-install-awdk, 03-talk-to-it]
+    bricks: [awsh]
+    status: preview
+    installs: [awsh, aither]
+    do:
+      # THREE npm names exist and only ONE of them installs this. Measured
+      # 2026-08-23, because getting it wrong is silent -- npm just 404s and the
+      # reader concludes the product does not exist:
+      #   @aitherium/awsh        1.18.3  <- THIS ONE. real bins, real deps.
+      #   @aitherium/shell-cli   1.16.1     the OLD name, two minors behind
+      #   awsh (unscoped)        404        the name in package.json, unpublished
+      # This chapter said `npm install -g awsh` -- the unscoped name -- so the
+      # LAST chapter of the guide, the payoff the whole thing walks toward,
+      # ended on a command that fails for every stranger who reached it.
+      - cmd: npm i -g @aitherium/awsh
+        expect: "awsh and aither on your PATH"
+        if_not: "Needs Node.js (nodejs.org, LTS). Open a new terminal after installing it."
+      - cmd: awsh init
+        expect: "'installed in <your shell profile>' - it works in PowerShell, bash and zsh"
+        if_not: "If it says the profile is not writable, it prints the exact line to add by hand. That line is the whole feature."
+      - cmd: awsh doctor
+        expect: "a measured miss time well under the budget it prints"
+        if_not: "A slow miss names the PATH entry causing it (usually a huge directory on PSModulePath). Remove that entry; it is costing every typo a minute."
+      - cmd: what time is it
+        kind: prompt   # typed text, not a program - GJ002 judges it as an omnibox line
+        expect: "an answer, where 'command not found' used to be"
+        if_not: "Open a NEW terminal - the hook installs into the profile, and the profile loads at start."
+    done_check:
+      cmd: awsh doctor
+      expect: "omnibox OK"
+    learned:
+      - The shell has exactly one response to a line it does not know; now that line reaches an agent instead.
+      - It is a shell hook (CommandNotFound), not a new shell - your terminal, your directory, your environment.
+      - Probes made by scripts are ignored on purpose; only what a human types at the prompt is answered.
+
+  - id: 10-build-a-pack
+    title: Build a pack
+    blurb: Write a tool pack, check it without running it, load it the way an agent will, and build bytes anyone can verify.
+    persona: builder
+    minutes: 20
+    requires: [05-agent-packs]
+    bricks: [awdk]
+    status: preview
+    installs: []
+    do:
+      - cmd: adk pack new yourname.weather
+        expect: "created <path>/yourname.weather, then the next two commands to run"
+        if_not: "If it says the id is reserved, use a namespace of your own, like your GitHub handle."
+      - cmd: adk pack validate yourname.weather
+        expect: "OK yourname.weather 0.1.0 ... all clean"
+        if_not: "Each PKA code names the file or field to fix. Fix it and run validate again."
+      - cmd: adk pack dev yourname.weather
+        expect: "OK yourname.weather: 1 tool(s) registered - weather_echo"
+        if_not: "0 tools means TOOL_NAMES in __init__.py does not name the functions in tools.py."
+      - cmd: adk pack build yourname.weather
+        expect: "built <path>/yourname.weather-0.1.0.tar.gz and a sha256"
+        if_not: "build refuses a pack that does not validate - run validate and fix what it lists."
+    done_check:
+      cmd: adk pack validate yourname.weather
+      expect: "OK yourname.weather 0.1.0"
+    learned:
+      - A tool pack is a folder - a manifest, a register() function and plain Python tools.
+      - validate never runs the pack's code; dev is the one step that does, and it loads the pack exactly as an agent will.
+      - build is reproducible, so a digest you publish can be checked by anyone who rebuilds your source.
+
+  - id: 11-claude-code
+    title: Set up Claude Code the Aither way
+    blurb: Put every aw* brick in Claude Code as tools, skills and hooks with one command, then check it stays that way.
+    persona: builder
+    minutes: 10
+    requires: [01-install-awdk]
+    bricks: [awdk, awsettings]
+    installs: []
+    do:
+      - cmd: adk claude setup
+        expect: "the awsh plugin installed and the awsettings preset applied, each line OK"
+        if_not: "If it says Claude Code is not found, install Claude Code first and open a new terminal. If `adk claude` is unknown, run `pip install -U awdk`."
+      - cmd: adk claude doctor
+        expect: "no CCD findings - exit 0"
+        if_not: "Each CCD code names the file and the setting that drifted; run `adk claude setup` again, then doctor."
+    done_check:
+      cmd: adk claude doctor
+      expect: "no CCD findings"
+    learned:
+      - Claude Code reads settings from several layers; a setting in a layer that does not honour it silently does not exist.
+      - Permission mode belongs in your user settings, never in a repository other people clone.
+      - Presets and files travel between machines; credentials never do.
+
+reference:
+  man_pages:
+    source: the ecosystem registry (ecosystem.yaml)
+    status: [public]
+  laws: laws/
+  skills: https://aitherium.github.io/awskills/
