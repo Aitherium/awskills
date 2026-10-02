@@ -71,13 +71,13 @@ ones a stranger can run (standard library only). Wiring, by event and matcher:
 | PreToolUse | `Edit` | `pre-edit-running-script.ps1` |
 | PreToolUse | `Write` | `pre-edit-running-script.ps1` |
 | PreToolUse | `MultiEdit` | `pre-edit-running-script.ps1` |
-| PreToolUse | `Bash` | `pre-bash-git-guard.py`, `pre-bash-all.ps1`, `pre-bash-qa-gate.py`, `pre-bash-awdecide.py`, `pre-bash-awgit-lease.py` |
+| PreToolUse | `Bash` | `pre-bash-git.py`, `pre-bash-all.ps1`, `pre-bash-qa-gate.py`, `pre-bash-awdecide.py` |
 | PreToolUse | `Edit` | `pre-edit-awgit-lease.py` |
 | PreToolUse | `Write` | `pre-edit-awgit-lease.py` |
 | PreToolUse | `MultiEdit` | `pre-edit-awgit-lease.py` |
 | PreToolUse | `Workflow` | `pre-workflow-mirror.py` |
 | SessionStart | `*` | `aeon-well-context.py`, `session-start.ps1`, `session-tool-card.py` |
-| Stop | `*` | `stop-self-review.ps1`, `stop-lint-gate.ps1`, `stop-tech-debt-ledger.ps1`, `stop_live_proof.py`, `stop-automation-gap.py`, `session-stop.ps1`, `stop-decision-cards.py` |
+| Stop | `*` | `stop-self-review.ps1`, `stop-lint-gate.ps1`, `stop-tech-debt-ledger.ps1`, `stop_live_proof.py`, `stop-automation-gap.py`, `stop-open-items.py`, `session-stop.ps1`, `stop-decision-cards.py` |
 | Stop | `*` | `stop-deploy-readiness.py` |
 | Stop | `*` | `stop-executive-brief.py` |
 | Stop | `*` | `stop-auto-capture.py` |

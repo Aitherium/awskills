@@ -130,7 +130,7 @@ systemctl --user daemon-reload && systemctl --user enable --now bonsai2-llama
 
 ## Part of one substrate
 
-A Bonsai 2 box is a reasoning [awnode](awnode.md); join it to a fleet with
+A Bonsai 2 box is a reasoning [awnode](aithernode.md); join it to a fleet with
 [AitherMesh](aithermesh.md), point [awdk](awdk.md) agents at its `:8080/v1` endpoint, and
 provision the host with [AitherZero](aitherzero.md).
 

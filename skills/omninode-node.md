@@ -25,13 +25,13 @@ with a chip can become a node.
 
 ```bash
 # build + self-verify P2P discovery, then exit
-./scripts/omninode-node-up.sh
+bash scripts/omninode-node-up.sh
 
 # build + run a persistent listening node (serves shards on the mesh; Ctrl-C to stop)
-./scripts/omninode-node-up.sh --listen
+bash scripts/omninode-node-up.sh --listen
 
 # pin a specific protocol revision
-OMNINODE_REF=<git-sha> ./scripts/omninode-node-up.sh
+OMNINODE_REF=<git-sha> bash scripts/omninode-node-up.sh
 ```
 
 Exit 0 with `NODE OK` means the binary built and peer discovery works on your machine. If discovery
@@ -45,7 +45,7 @@ the agent substrate. When the `adk` CLI is on your PATH the script offers to enr
 **AitherMesh** overlay so adk agents discover it as a mesh peer:
 
 ```bash
-./scripts/omninode-node-up.sh --adk      # build, verify, then `adk mesh onboard --role worker`
+bash scripts/omninode-node-up.sh --adk      # build, verify, then `adk mesh onboard --role worker`
 # or, any time after:
 adk mesh onboard --role worker           # join this box to the mesh
 adk mesh ls                              # see the peers your agents can reach

@@ -30,16 +30,36 @@ support, and saying so plainly is worth more than a roadmap line.
 
 ## The measurement that produced this
 
-Measured 2026-08-23 across one product family:
+Measured 2026-08-23 across one product family. The **proven** column is what
+the table said when the law was written; **now** is the same question asked
+again one day later, after every empty cell was chased:
 
-| platform | artifact | lane | proven |
-|---|---|---|---|
-| Linux container | image | build + assert | **yes** — UI serves, model answers offline |
-| Linux ISO / VM | ISO parts | CI workflow | build lane green; **never dispatched for this variant** |
-| WSL2 | rootfs tarball | `awnix-to-wsl.sh` | **yes** — imported, models and CLI present |
-| Windows | wheel via pip | PyPI | **yes** — CI matrix |
-| macOS | wheel via pip | PyPI | **yes** — CI matrix on a real Mac runner |
-| macOS | `brew install` | tap | **404 — the tap has no formula** |
+| platform | artifact | lane | proven | now |
+|---|---|---|---|---|
+| Linux container | image | build + assert | **yes** — UI serves, model answers offline | yes |
+| Linux ISO / VM | ISO parts | CI workflow | build lane green; **never dispatched for this variant** | **yes** — 2.85 GB released in parts, with SHA256SUMS and both assemble scripts |
+| WSL2 | rootfs tarball | `awnix-to-wsl.sh` | **yes** — imported, models and CLI present | yes |
+| Windows | wheel via pip | PyPI | **yes** — CI matrix | yes |
+| macOS | wheel via pip | PyPI | **yes** — CI matrix on a real Mac runner | yes |
+| macOS | `brew install` | tap | **404 — the tap has no formula** | **200** — formula published |
+| Windows | the app's own launcher | CI | *not asked* | **yes** — serves the UI |
+| sandboxed appliance | image | CI pull | *not asked* | **no — the lane skips, loudly** |
+
+Every cell that said something other than "yes" was closed inside a day, and
+none of them was hard: the ISO needed **dispatching**, the formula needed
+**publishing**, and the Mac needed a **public repo**. That is the uncomfortable
+half of this law — an unproven platform usually is not blocked on difficulty,
+it is blocked on nobody having run the lane. The difficulty is imagined, and
+imagining it is what keeps the cell empty.
+
+The last row is the law applied to itself. That lane reports SUCCESS and runs
+**nothing**: the image is published to a registry with `internal` visibility, so
+an anonymous pull from a public repo cannot see it, and the lane takes its skip
+branch. It says so in as many words — `is not published yet — this lane is NOT
+running` — which is the only reason the green is not a lie. **A skip that
+announces itself is honest; the same skip in silence would have read as an
+eighth proven platform.** Do not count it until the registry lets a stranger
+pull.
 
 The brew row is the law in miniature. A formula existed in-repo, a tap existed,
 a publish step existed — and the step began:
