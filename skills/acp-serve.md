@@ -44,7 +44,7 @@ Save it where the editor's ACP integration expects it (e.g. Zed:
 ## Verify
 
 ```bash
-adk acp prompt --command "adk acp serve" "hello"   # self-drive over stdio
+adk acp prompt --command adk --arg acp --arg serve "hello"   # self-drive over stdio
 ```
 
 A reference ACP client driving `adk acp serve` and completing a running→idle

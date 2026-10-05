@@ -83,14 +83,14 @@ a clear `"Genesis unavailable after N attempts"` rather than a raw gateway error
 ## What this is (and isn't)
 
 - **Agent Notebooks (`.anb`)** — *this skill*: structured, executable plans with runs, gates,
-  replay/diff, `.ipynb` export. Lives in `lib/orchestration/NotebookEngine.py` + the
-  `/notebooks` Genesis router.
+  replay/diff, `.ipynb` export. Served by Genesis's
+  `/notebooks` router.
 - **Research Notebooks** — the *other* thing: a NotebookLM-style "chat with your sources /
-  make a podcast" surface (`lib/notebooks/`, `/research-notebooks`). Not this.
+  make a podcast" surface (`/research-notebooks`). Not this.
 
 ## Config & auth
 
-Point the tools at your Genesis with `AITHER_GENESIS_URL` (default `http://a local Genesis endpoint`).
+Point the tools at your Genesis with `AITHER_GENESIS_URL` (default `http://localhost:8001`).
 LLM/embeddings route through the governed gateway; the tools trust the internal CA — set
 `AITHER_TLS_VERIFY=false` only if you deliberately need to skip verification (never the
 default).

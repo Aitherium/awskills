@@ -3,6 +3,7 @@
     python tools/next_debt_id.py          # -> the next free id, reserved
     python tools/next_debt_id.py --audit  # report duplicate ids
     python tools/next_debt_id.py --release <id>    # give one back
+    python tools/next_debt_id.py --self-test       # prove --release is confined
 
 WHY THIS IS NOT JUST max()+1
 ----------------------------
@@ -198,6 +199,57 @@ def sweep(ledger: Path, res_dir: Path) -> int:
     return dropped
 
 
+_RELEASE_RE = re.compile(r"D-\d{1,5}")
+
+
+def release(res_dir: Path, ident: str) -> tuple[int, str]:
+    """Delete ONE reservation file. Returns (exit_code, message).
+
+    `ident` comes from the command line, so it is validated as an id
+    (`D-<digits>`) and the resolved target must sit directly inside the
+    reservation dir: `--release ../TECH_DEBT.md` once unlinked the ledger.
+    """
+    if not _RELEASE_RE.fullmatch(ident or ""):
+        return 2, f"refusing --release {ident!r}: expected an id like D-<n>"
+    base = res_dir.resolve()
+    target = (res_dir / ident).resolve()
+    if target.parent != base:
+        return 2, f"refusing --release {ident!r}: resolves outside {base}"
+    if target.is_file():
+        target.unlink()
+        return 0, f"released {ident}"
+    return 1, f"no reservation for {ident}"
+
+
+def _self_test() -> int:
+    """Fails on the old behaviour (an unchecked --release path)."""
+    import tempfile
+
+    fails: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        ledger = root / LEDGER_NAME
+        ledger.write_text("| D-1 | row |\n", encoding="utf-8")
+        res = root / RESERVATION_DIR
+        res.mkdir()
+        (res / "D-7").write_text("x", encoding="utf-8")
+        for bad in (f"../{LEDGER_NAME}", str(ledger), "D-7/../../" + LEDGER_NAME, "x"):
+            code, _ = release(res, bad)
+            if code == 0 or not ledger.is_file():
+                fails.append(f"--release {bad!r} was accepted or removed the ledger")
+                ledger.write_text("| D-1 | row |\n", encoding="utf-8")
+        code, _ = release(res, "D-7")
+        if code != 0 or (res / "D-7").exists():
+            fails.append("--release D-7 did not remove a valid reservation")
+        if release(res, "D-8")[0] != 1:
+            fails.append("--release of a missing id did not exit 1")
+    for f in fails:
+        print(f"SELFTEST FAIL: {f}", file=sys.stderr)
+    if not fails:
+        print("SELFTEST PASS: --release accepts only D-<n> inside the reservation dir")
+    return 1 if fails else 0
+
+
 def audit(ledger: Path) -> tuple[int, list[tuple[str, int]]]:
     """Duplicate ROW ids in the ledger. Returns (row_count, [(id, times)])."""
     counts: dict[str, int] = {}
@@ -219,7 +271,12 @@ def main() -> int:
                     help="release a reservation that was taken but not used")
     ap.add_argument("--sweep", action="store_true",
                     help="drop reservations whose id is already in the ledger")
+    ap.add_argument("--self-test", action="store_true",
+                    help="run the built-in regression test and exit")
     args = ap.parse_args()
+
+    if args.self_test:
+        return _self_test()
 
     root = _repo_root()
     ledger = root / LEDGER_NAME
@@ -241,13 +298,9 @@ def main() -> int:
         return 1 if dups else 0
 
     if args.release:
-        target = res_dir / args.release
-        if target.is_file():
-            target.unlink()
-            print(f"released {args.release}")
-            return 0
-        print(f"no reservation for {args.release}", file=sys.stderr)
-        return 1
+        code, msg = release(res_dir, args.release)
+        print(msg, file=sys.stdout if code == 0 else sys.stderr)
+        return code
 
     if args.sweep:
         print(f"swept {sweep(ledger, res_dir)} reservation(s)")

@@ -38,7 +38,7 @@ adk doctor                      # confirms toolkit, packs, and inference are rea
 model? Skip local inference and set a key instead:
 
 ```bash
-adk keys set anthropic <your-api-key>   # or openai / deepseek / openrouter / groq / together / google
+adk keys set anthropic   # prompts for the key (never put it in argv); or openai / deepseek / openrouter / groq / together / google
 ```
 
 ## Use it
@@ -46,7 +46,7 @@ adk keys set anthropic <your-api-key>   # or openai / deepseek / openrouter / gr
 ```bash
 adk up                          # one command: stand up a persistent agent (hosted-brain default)
 adk run --agents openclaw       # run a specific bundled pack (openclaw / hermes / claude-code)
-adk chat                        # talk to your agent from the terminal
+adk chat <agent>                # talk to an agent by name (names: adk agents ls)
 adk install pack:openclaw       # add an agent pack
 adk pack customize openclaw --system-prompt "You are my focused research assistant."
 adk doctor                      # check inference, packs, enrollment, and mesh health

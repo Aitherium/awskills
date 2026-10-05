@@ -3,19 +3,28 @@
     Recovers Docker Desktop from the WSL2 500-error hang without rebooting.
 .DESCRIPTION
     When Docker Desktop's Linux engine wedges (API returns 500), this script:
-    1. Kills Docker Desktop and all related processes
-    2. Shuts down WSL completely
-    3. Stops the Docker and WSL Windows services
-    4. Restarts everything cleanly
+    1. Kills Docker Desktop's own processes (never vmmem/wslservice, which
+       host EVERY WSL distro on the machine)
+    2. Terminates only Docker's WSL distros (docker-desktop, docker-desktop-data)
+    3. Restarts the Docker Desktop Windows service (admin only; the WSL
+       service is left alone)
+    4. Starts Docker Desktop and, once healthy, restarts only exited containers
+       whose restart policy is 'always' or 'unless-stopped'
+    Dead containers are listed, and removed only with -RemoveDead.
     Can also run as a scheduled task to auto-detect and recover.
+    Exits 2 without doing anything when the docker CLI is not installed.
 .PARAMETER Monitor
     Run in monitoring loop — checks every 30s, auto-recovers on failure.
 .PARAMETER Interval
     Seconds between health checks in monitor mode (default: 30).
+.PARAMETER RemoveDead
+    After recovery, `docker rm -f` containers in the 'dead' state. Without
+    this switch they are only listed.
 #>
 param(
     [switch]$Monitor,
-    [int]$Interval = 30
+    [int]$Interval = 30,
+    [switch]$RemoveDead
 )
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -53,10 +62,13 @@ function Invoke-DockerRecovery {
     foreach ($d in 'docker-desktop','docker-desktop-data') { wsl --terminate $d 2>$null }
     Start-Sleep 3
 
-    # Phase 3: Kill any remaining zombie processes
-    Write-Host "  [3/5] Cleaning up zombie processes..." -ForegroundColor Yellow
-    taskkill /F /IM 'vmmem' 2>$null
-    taskkill /F /IM 'wslservice.exe' 2>$null
+    # Phase 3: Sweep leftover Docker Desktop processes ONLY.
+    # NOT vmmem / wslservice.exe: those are the shared WSL utility VM and service
+    # behind EVERY distro, so killing them is the same global outage as
+    # `wsl --shutdown` (see Phase 2).
+    Write-Host "  [3/5] Cleaning up leftover Docker Desktop processes..." -ForegroundColor Yellow
+    Get-Process -Name 'com.docker.*', 'Docker Desktop', 'vpnkit*' -ErrorAction SilentlyContinue |
+        Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep 2
 
     # Phase 4: Stop and restart Windows services (needs admin)
@@ -64,7 +76,7 @@ function Invoke-DockerRecovery {
     if ($isAdmin) {
         Write-Host "  [4/5] Restarting Docker Windows service..." -ForegroundColor Yellow
         Stop-Service 'com.docker.service' -Force -ErrorAction SilentlyContinue
-        Stop-Service 'wslservice' -Force -ErrorAction SilentlyContinue
+        # wslservice is deliberately NOT stopped: it serves every WSL distro.
         Start-Sleep 2
         Start-Service 'com.docker.service' -ErrorAction SilentlyContinue
     } else {
@@ -87,21 +99,27 @@ function Invoke-DockerRecovery {
             $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
             Write-Host "[$timestamp] Docker recovered in ${waited}s!" -ForegroundColor Green
 
-            # Check for dead containers and restart them
-            $dead = docker ps -a --filter "status=dead" --format "{{.Names}}" 2>$null
-            if ($dead) {
-                Write-Host "  Cleaning up dead containers: $($dead -join ', ')" -ForegroundColor Yellow
-                foreach ($c in $dead) {
-                    docker rm -f $c 2>$null
+            # Dead containers: list them; remove only on explicit -RemoveDead.
+            $dead = @(docker ps -a --filter "status=dead" --format "{{.Names}}" 2>$null)
+            if ($dead.Count -gt 0) {
+                if ($RemoveDead) {
+                    Write-Host "  Removing dead containers (-RemoveDead): $($dead -join ', ')" -ForegroundColor Yellow
+                    foreach ($c in $dead) {
+                        docker rm -f $c 2>$null
+                    }
+                } else {
+                    Write-Host "  Dead containers (left in place; re-run with -RemoveDead to remove): $($dead -join ', ')" -ForegroundColor DarkYellow
                 }
             }
 
-            # Restart exited containers that have restart policy
-            $exited = docker ps -a --filter "status=exited" --format "{{.Names}}" 2>$null
-            if ($exited) {
-                Write-Host "  Restarting exited containers..." -ForegroundColor Yellow
-                foreach ($c in $exited) {
-                    docker start $c 2>$null
+            # Restart ONLY exited containers whose restart policy asks for it.
+            # An exited container with policy 'no'/'on-failure' was stopped on purpose.
+            $exited = @(docker ps -a --filter "status=exited" --format "{{.Names}}" 2>$null)
+            foreach ($c in $exited) {
+                $policy = docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' $c 2>$null
+                if ($LASTEXITCODE -eq 0 -and "$policy".Trim() -in @('always', 'unless-stopped')) {
+                    Write-Host "  Restarting $c (restart policy: $("$policy".Trim()))" -ForegroundColor Yellow
+                    docker start $c 2>$null | Out-Null
                 }
             }
 
@@ -115,6 +133,13 @@ function Invoke-DockerRecovery {
 }
 
 # --- Main ---
+
+# Without a docker CLI, Test-DockerHealthy can only ever say "unhealthy", and a
+# no-arg run would go straight into killing processes and services.
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-Host "docker CLI not found on PATH - cannot judge engine health; doing nothing." -ForegroundColor Red
+    exit 2
+}
 
 if ($Monitor) {
     Write-Host "Docker health monitor started (checking every ${Interval}s). Ctrl+C to stop." -ForegroundColor Cyan

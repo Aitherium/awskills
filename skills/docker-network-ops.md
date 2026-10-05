@@ -32,7 +32,9 @@ python tools/docker-net-doctor.py clients    # musl vs glibc vs nginx semantics
 ```
 
 Exit `0` clean, `1` defect found, **`2` = could not determine, which is a FAILURE, not a
-pass.** A check that could not run tells you nothing and must never read as green.
+pass.** `2` covers every could-not-judge case: `docker` not on PATH, a check that could not
+run, and an unknown mode name (a typo must not run nothing and report clean). A check that
+could not run tells you nothing and must never read as green.
 
 ## The embedded resolver is a goroutine, not a service
 

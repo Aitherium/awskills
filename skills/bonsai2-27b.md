@@ -41,7 +41,8 @@ ASSET=llama-$RELEASE-bin-linux-cuda-12.4-x64.tar.gz     # NVIDIA, 10 GB+ VRAM ->
 # ASSET=llama-$RELEASE-bin-ubuntu-vulkan-x64.tar.gz     # any GPU via Vulkan -> PTQ1_0
 # ASSET=llama-$RELEASE-bin-ubuntu-x64.tar.gz            # CPU only          -> PTQ1_0
 # ASSET=llama-$RELEASE-bin-macos-arm64.tar.gz           # Apple silicon     -> PQ2_0 at 16 GB+
-mkdir -p ~/bonsai2/bin && curl -fL "$BASE/$ASSET" | tar -xz -C ~/bonsai2/bin
+# the tarball nests everything under llama-$RELEASE/; strip it so the binary is ~/bonsai2/bin/llama-server
+mkdir -p ~/bonsai2/bin && curl -fL "$BASE/$ASSET" | tar -xz --strip-components=1 -C ~/bonsai2/bin
 LLAMA=$(find ~/bonsai2/bin -name llama-server -type f | head -1)
 "$LLAMA" --version    # must run before you download 6 GB of weights
 
@@ -110,6 +111,9 @@ Restart=on-failure
 [Install]
 WantedBy=default.target
 ```
+
+`ExecStart` assumes the prebuilt release extracted as above; if you built from source, use
+`%h/llama.cpp/build/bin/llama-server` instead. Match the `.gguf` name to the quant you downloaded.
 
 ```bash
 systemctl --user daemon-reload && systemctl --user enable --now bonsai2-llama

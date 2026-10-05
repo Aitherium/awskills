@@ -99,9 +99,9 @@ macOS/Windows. **Getting the port wrong per-platform is the most common wiring m
 
 ## Upstream vs fork
 
-`Osmantic/ODS` is upstream and canonical for install instructions;
-[`wizzense/ODS`](https://github.com/wizzense/ODS) is a fork. Install from whichever you intend
-to track, but **don't mix** — a fork's `install.sh` and upstream's `model-library.json` can
+[`Osmantic/ODS`](https://github.com/Osmantic/ODS) is upstream and canonical for install
+instructions. If you install from a fork instead, track that fork consistently and **don't
+mix** — a fork's `install.sh` and upstream's `model-library.json` can
 drift, and the failure shows up as a service that won't start rather than as a clear version
 error.
 

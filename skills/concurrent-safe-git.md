@@ -98,31 +98,45 @@ can eat it. Don't let a large edit sit unstaged while you keep going.
 ## "Your local changes would be overwritten by merge" is usually a lie
 
 With many writers, index entries go **stat-dirty**: mtime changed, content identical.
-Git then blocks the merge to protect changes that *do not exist* — and the obvious
-escape (`git stash`) is exactly what rule 2 forbids.
+Git then refuses to touch files to protect changes that *do not exist* — and the obvious
+escape (`git stash`) is exactly what rule 2 forbids. In a shared tree the stash is
+repo-global: it is shared by every worktree of the repository, and a stash/pop takes
+other sessions' work off disk with yours.
 
 Do this instead:
 
 ```bash
 git diff --stat -- <the blocked paths>   # which are REALLY modified?
 git update-index --refresh               # re-stat; clears false-dirty entries
-git merge origin/<branch>                # usually just works now
 ```
 
 Measured on a real tree: a merge blocked by **7** files. `git diff --stat` showed
-exactly **one** had real changes; the other six were stat-only. After `--refresh` the
-merge proceeded and **all seven kept their content** — no stash, no reset, nothing lost.
+exactly **one** had real changes; the other six were stat-only. After `--refresh` all
+seven read clean and kept their content — no stash, no reset, nothing lost.
 
 If a file *is* genuinely modified and still blocks, copy it to a scratch directory
-first — a filesystem backup git cannot lose — then scope any stash to that one path.
-Never the whole tree.
+first — a filesystem backup git cannot lose — and only then restore that one path:
+
+```bash
+mkdir -p ../scratch && cp -p <path> ../scratch/
+git restore -- <path>                    # that path only, never the tree
+```
+
+**Do the merge itself in your own worktree on your own branch, never in the shared
+tree.** A merge, rebase or pull rewrites files every other session is reading; the
+pack's git guard hook blocks them in a shared checkout for that reason.
+
+```bash
+git worktree add ../my-merge -b my/merge-branch <your-branch>
+git -C ../my-merge merge origin/<branch>
+```
 
 ---
 
 ## Don't fight a divergence that resolves itself
 
 When every session shares ONE worktree and ONE HEAD, another session's `git push`
-carries **your** commits too, and their `merge` clears your `behind` count.
+carries **your** commits too, and their update clears your `behind` count.
 
 If a push is rejected: re-`fetch`, re-check, wait. Observed on a real tree: a state
 that looked like "ahead 6 / behind 6" became "ahead 5 / behind 0" on its own within
@@ -139,7 +153,8 @@ compound `a && git push`.
 ## Never
 
 - `git reset --hard` (any form)
-- bare `git reset`, `git checkout .`, `git stash`
+- bare `git reset`, `git checkout .`, `git stash` (any mutating form)
+- `git merge` / `rebase` / `pull` in the shared tree (do it in your own worktree)
 - `git add -A` / `git add .` / bare `git commit`
 - chained `git push`
 

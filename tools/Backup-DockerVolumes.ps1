@@ -41,6 +41,13 @@
 .PARAMETER IncludeAll
     Include ALL discovered volumes regardless of -SkipPattern.
 
+.PARAMETER SelfTest
+    Run the built-in regression test (a fake docker CLI on PATH, a temp backup
+    dir) and exit 0 on pass, 1 on fail. Touches no real Docker state.
+
+    Exit codes: 0 every volume archived; 1 one or more archives failed (old
+    snapshots are then NOT pruned); 2 volume discovery failed (could not judge).
+
 .EXAMPLE
     .\Backup-DockerVolumes.ps1
     Back up all named volumes matching default pattern (excludes 64-char IDs).
@@ -79,7 +86,9 @@ param(
 
     [switch]$DryRun,
 
-    [switch]$IncludeAll
+    [switch]$IncludeAll,
+
+    [switch]$SelfTest
 )
 
 Set-StrictMode -Version Latest
@@ -138,6 +147,51 @@ function Format-FileSize {
 # =============================================================================
 # PREFLIGHT CHECKS
 # =============================================================================
+
+# =============================================================================
+# SELF-TEST (fake docker CLI; never touches real Docker)
+# =============================================================================
+
+if ($SelfTest) {
+    $root = Join-Path ([System.IO.Path]::GetTempPath()) ("bdv-selftest-" + [guid]::NewGuid().ToString('N'))
+    $bin = Join-Path $root 'bin'
+    New-Item -ItemType Directory -Force -Path $bin | Out-Null
+    $hostExe = (Get-Process -Id $PID).Path
+    $savedPath = $env:PATH
+    $failures = @()
+    function Invoke-Case([string]$cmdBody) {
+        Set-Content -Path (Join-Path $bin 'docker.cmd') -Value $cmdBody -Encoding ascii
+        $bk = Join-Path $root ('backups-' + [guid]::NewGuid().ToString('N'))
+        $old = Join-Path $bk '20200101-000000'
+        New-Item -ItemType Directory -Force -Path $old | Out-Null
+        Set-Content -Path (Join-Path $old 'pgdata.tgz') -Value 'LAST GOOD BACKUP'
+        (Get-Item $old).CreationTime = (Get-Date).AddDays(-30)
+        $env:PATH = "$bin;$savedPath"
+        try {
+            & $hostExe -NoProfile -File $PSCommandPath -BackupDir $bk -Pattern 'pgdata' *> $null
+            $code = $LASTEXITCODE
+        } finally { $env:PATH = $savedPath }
+        return [PSCustomObject]@{ Code = $code; OldKept = (Test-Path (Join-Path $old 'pgdata.tgz')) }
+    }
+    try {
+        # Case 1: every archive fails -> exit 1 and the old snapshot survives.
+        $r = Invoke-Case "@echo off`r`nif `"%1`"==`"info`" ( echo 27.0.0& exit /b 0 )`r`nif `"%1`"==`"volume`" if `"%2`"==`"ls`" ( echo pgdata& exit /b 0 )`r`nif `"%1`"==`"volume`" if `"%2`"==`"inspect`" ( echo []& exit /b 0 )`r`nif `"%1`"==`"run`" ( echo tar: simulated failure 1>&2& exit /b 1 )`r`nexit /b 1`r`n"
+        if ($r.Code -ne 1) { $failures += "archive failure: expected exit 1, got $($r.Code)" }
+        if (-not $r.OldKept) { $failures += 'archive failure: old snapshot was pruned' }
+        # Case 2: docker volume ls fails -> exit 2 (could not judge), nothing pruned.
+        $r = Invoke-Case "@echo off`r`nif `"%1`"==`"info`" ( echo 27.0.0& exit /b 0 )`r`nif `"%1`"==`"volume`" if `"%2`"==`"ls`" ( echo permission denied 1>&2& exit /b 1 )`r`nexit /b 1`r`n"
+        if ($r.Code -ne 2) { $failures += "volume ls failure: expected exit 2, got $($r.Code)" }
+        if (-not $r.OldKept) { $failures += 'volume ls failure: old snapshot was pruned' }
+    } finally {
+        Remove-Item -Recurse -Force -Path $root -ErrorAction SilentlyContinue
+    }
+    if ($failures.Count -gt 0) {
+        $failures | ForEach-Object { Write-Host "SELFTEST FAIL: $_" -ForegroundColor Red }
+        exit 1
+    }
+    Write-Host 'SELFTEST PASS: failed archives exit 1 without pruning; failed volume listing exits 2' -ForegroundColor Green
+    exit 0
+}
 
 Write-Banner 'Backup-DockerVolumes' 'Docker Volume Snapshots'
 
@@ -202,9 +256,14 @@ if ($Volume) {
     $runtimeVolumes = @()
     try {
         $dockerVolOutput = docker volume ls --format '{{.Name}}' 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            # A failed listing is NOT "no volumes": refuse instead of reporting success.
+            Write-Err "docker volume ls failed (exit $LASTEXITCODE): $dockerVolOutput"
+            exit 2
+        }
         if ($LASTEXITCODE -eq 0) {
             # Exclude anonymous 64-hex-char volume IDs, apply -Pattern
-            $runtimeVolumes = $dockerVolOutput | Where-Object {
+            $runtimeVolumes = @($dockerVolOutput | Where-Object {
                 # Skip anonymous volumes (64 hex chars)
                 if ($_ -match '^[a-f0-9]{64}$') {
                     return $false
@@ -214,13 +273,14 @@ if ($Volume) {
                     return $false
                 }
                 return $true
-            }
+            })
             if ($runtimeVolumes) {
                 Write-Ok "Found $($runtimeVolumes.Count) volumes matching pattern '$Pattern' in Docker"
             }
         }
     } catch {
-        Write-Warn "Could not list Docker volumes: $_"
+        Write-Err "Could not list Docker volumes: $_"
+        exit 2
     }
 
     # Merge compose + runtime, deduplicate
@@ -464,12 +524,15 @@ if ($PSCmdlet.ShouldProcess($manifestPath, 'Write manifest')) {
 # =============================================================================
 
 Write-Host ""
-Write-Step "Pruning snapshots older than $MaxAgeDays days..."
-
 $cutoff = (Get-Date).AddDays(-$MaxAgeDays)
 $pruned = 0
 
-if (Test-Path $BackupDir) {
+if ($failCount -gt 0) {
+    # Never delete older (possibly the last good) snapshots after a failed run.
+    Write-Warn "Skipping retention prune: $failCount archive(s) failed this run"
+} elseif (Test-Path $BackupDir) {
+    Write-Step "Pruning snapshots older than $MaxAgeDays days..."
+
     $oldDirs = Get-ChildItem -Path $BackupDir -Directory | Where-Object {
         # Match timestamp-named directories (yyyyMMdd-HHmmss)
         $_.Name -match '^\d{8}-\d{6}$' -and $_.CreationTime -lt $cutoff
@@ -519,3 +582,6 @@ Write-Host "  Snapshot directory:  $snapshotDir" -ForegroundColor Cyan
 Write-Host "  Manifest:            $manifestPath" -ForegroundColor Cyan
 Write-Host "  Old snapshots pruned: $pruned" -ForegroundColor White
 Write-Host ""
+
+if ($failCount -gt 0) { exit 1 }
+exit 0

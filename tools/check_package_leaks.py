@@ -21,7 +21,7 @@ Rules
 
 Examples
 --------
-    # newest wheel in dist/ must not bundle nanogpt.py or import an internal pkg
+    # no wheel/sdist in dist/ may bundle nanogpt.py or import an internal pkg
     python check_package_leaks.py \
         --forbid-path '*/nanogpt.py' --forbid-import mycorp_internal
 
@@ -37,13 +37,23 @@ Examples
 Config file keys mirror the flags: forbid_path[], forbid_import[],
 require_file[], allow_path[], dist_dir.
 
+With no explicit DIST argument, EVERY wheel/sdist in --dist-dir is inspected
+(a stale or second artifact ships too). Imports are parsed with `ast`, so
+`import os, mycorp_internal` is caught; a file that does not parse falls back
+to a line regex.
+
+    python check_package_leaks.py --self-test   # prove both guards still fail
+
 Exit codes: 0 = clean, 1 = violations found, 2 = no distribution found / bad input.
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
 import fnmatch
+import os
+import tempfile
 import json
 import re
 import sys
@@ -83,16 +93,42 @@ def _iter_members(dist: Path):
         raise ValueError(f"unsupported distribution type: {dist.name}")
 
 
-def _newest_dist(dist_dir: Path) -> Path | None:
+def _all_dists(dist_dir: Path) -> list[Path]:
+    """Every distribution artifact in dist_dir, sorted by name (all of them ship)."""
     if not dist_dir.is_dir():
-        return None
-    candidates = [
+        return []
+    return sorted({
         p for ext in ("*.whl", "*.tar.gz", "*.tgz", "*.zip")
-        for p in dist_dir.glob(ext)
-    ]
-    if not candidates:
+        for p in dist_dir.glob(ext) if p.is_file()
+    })
+
+
+def _newest_dist(dist_dir: Path) -> Path | None:
+    """Back-compat helper; run() no longer uses it (it scans every artifact)."""
+    candidates = _all_dists(dist_dir)
+    return max(candidates, key=lambda p: p.stat().st_mtime) if candidates else None
+
+
+def _imported_modules(data: bytes) -> set[str] | None:
+    """Absolute module names a source file imports, or None if it does not parse."""
+    try:
+        tree = ast.parse(data)
+    except (SyntaxError, ValueError):
         return None
-    return max(candidates, key=lambda p: p.stat().st_mtime)
+    mods: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            mods.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            mods.add(node.module)
+    return mods
+
+
+def _imports_forbidden(data: bytes, name: str, fallback: re.Pattern) -> bool:
+    mods = _imported_modules(data)
+    if mods is None:  # unparseable source: regex fallback
+        return bool(fallback.search(data))
+    return any(m == name or m.startswith(name + ".") for m in mods)
 
 
 def _load_config(path: Path) -> dict:
@@ -112,8 +148,8 @@ def build_parser() -> argparse.ArgumentParser:
         description="Fail a build if a Python distribution leaks private files/imports.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("dist", nargs="?", help="wheel/sdist to inspect (default: newest in --dist-dir)")
-    p.add_argument("--dist-dir", default="dist", help="where to look for the newest dist (default: dist)")
+    p.add_argument("dist", nargs="?", help="wheel/sdist to inspect (default: every one in --dist-dir)")
+    p.add_argument("--dist-dir", default="dist", help="where to look for distributions (default: dist)")
     p.add_argument("--forbid-path", action="append", default=[], metavar="GLOB",
                    help="member that must NOT ship (repeatable)")
     p.add_argument("--forbid-import", action="append", default=[], metavar="NAME",
@@ -123,6 +159,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--allow-path", action="append", default=[], metavar="GLOB",
                    help="exception to --forbid-path (repeatable)")
     p.add_argument("--config", metavar="FILE", help="load rules from JSON/TOML")
+    p.add_argument("--self-test", action="store_true",
+                   help="run the built-in regression test and exit")
     return p
 
 
@@ -146,45 +184,54 @@ def run(args: argparse.Namespace) -> int:
               "or --config.", file=sys.stderr)
         return 2
 
-    dist = Path(args.dist) if args.dist else _newest_dist(Path(dist_dir))
-    if not dist or not dist.is_file():
+    if args.dist:
+        dists = [Path(args.dist)]
+        if not dists[0].is_file():
+            print(f"ERROR: distribution not found: {args.dist}", file=sys.stderr)
+            return 2
+    else:
+        dists = _all_dists(Path(dist_dir))
+    if not dists:
         print(f"ERROR: no distribution found (looked in '{dist_dir}/'). Build first: "
               f"python -m build", file=sys.stderr)
         return 2
 
-    print(f"LEAK GUARD: inspecting {dist.name}")
+    # Fallback only, for sources ast cannot parse: also catches `import a, NAME`.
     import_re = {
         name: re.compile(
-            rb"^\s*(from|import)\s+" + re.escape(name).encode() + rb"(\.|\s|$)",
+            rb"^\s*(?:from\s+|import\s+(?:[\w.]+(?:\s+as\s+\w+)?\s*,\s*)*)"
+            + re.escape(name).encode() + rb"(\.|\s|,|$)",
             re.MULTILINE,
         )
         for name in forbid_import
     }
 
     violations: list[str] = []
-    required_hit = {pat: False for pat in require_file}
+    for dist in dists:
+        print(f"LEAK GUARD: inspecting {dist.name}")
+        required_hit = {pat: False for pat in require_file}
 
-    for name, read in _iter_members(dist):
-        allowed = any(_matches(name, a) for a in allow_path)
+        for name, read in _iter_members(dist):
+            allowed = any(_matches(name, a) for a in allow_path)
 
-        if not allowed:
-            for pat in forbid_path:
+            if not allowed:
+                for pat in forbid_path:
+                    if _matches(name, pat):
+                        violations.append(f"LEAK: {dist.name}: forbidden file shipped: {name}  (matched '{pat}')")
+
+            for pat in require_file:
                 if _matches(name, pat):
-                    violations.append(f"LEAK: forbidden file shipped: {name}  (matched '{pat}')")
+                    required_hit[pat] = True
 
-        for pat in require_file:
-            if _matches(name, pat):
-                required_hit[pat] = True
+            if import_re and name.endswith(".py") and not allowed:
+                data = read()
+                for mod, rx in import_re.items():
+                    if _imports_forbidden(data, mod, rx):
+                        violations.append(f"LEAK: {dist.name}: imports forbidden module '{mod}': {name}")
 
-        if import_re and name.endswith(".py") and not allowed:
-            data = read()
-            for mod, rx in import_re.items():
-                if rx.search(data):
-                    violations.append(f"LEAK: imports forbidden module '{mod}': {name}")
-
-    for pat, hit in required_hit.items():
-        if not hit:
-            violations.append(f"MISSING: required file not in distribution: '{pat}'")
+        for pat, hit in required_hit.items():
+            if not hit:
+                violations.append(f"MISSING: {dist.name}: required file not in distribution: '{pat}'")
 
     if violations:
         print("LEAK GUARD FAILED:", file=sys.stderr)
@@ -196,8 +243,64 @@ def run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _self_test() -> int:
+    """Fails on the old behaviour: newest-artifact-only, and a regex that missed
+    `import os, NAME`."""
+    fails: list[str] = []
+
+    def check(dist_dir: Path) -> int:
+        args = build_parser().parse_args(
+            ["--dist-dir", str(dist_dir), "--forbid-import", "mycorp_internal"])
+        return run(args)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # Case 1: an OLDER wheel leaks, the NEWEST sdist is clean.
+        d1 = root / "d1"
+        d1.mkdir()
+        whl = d1 / "pkg-1.0-py3-none-any.whl"
+        with zipfile.ZipFile(whl, "w") as zf:
+            zf.writestr("pkg/core.py", "from mycorp_internal.secret import x\n")
+        sdist = d1 / "pkg-1.0.tar.gz"
+        src = root / "clean.py"
+        src.write_text("import os\nimport mycorp_internalx\n", encoding="utf-8")
+        with tarfile.open(sdist, "w:gz") as tf:
+            tf.add(str(src), arcname="pkg-1.0/pkg/core.py")
+        os.utime(whl, (1_000_000, 1_000_000))
+        if check(d1) != 1:
+            fails.append("a leaking wheel next to a newer clean sdist was not caught")
+        # Case 2: comma-list import.
+        d2 = root / "d2"
+        d2.mkdir()
+        with zipfile.ZipFile(d2 / "pkg-2.0-py3-none-any.whl", "w") as zf:
+            zf.writestr("pkg/core.py", "import os, mycorp_internal\n")
+        if check(d2) != 1:
+            fails.append("`import os, mycorp_internal` was not caught")
+        # Case 3: unparseable source still caught by the regex fallback.
+        d3 = root / "d3"
+        d3.mkdir()
+        with zipfile.ZipFile(d3 / "pkg-3.0-py3-none-any.whl", "w") as zf:
+            zf.writestr("pkg/core.py", "import sys, mycorp_internal\ndef broken(:\n")
+        if check(d3) != 1:
+            fails.append("unparseable source with a forbidden import was not caught")
+        # Case 4: no false positive on a prefix-sharing name.
+        d4 = root / "d4"
+        d4.mkdir()
+        with zipfile.ZipFile(d4 / "pkg-4.0-py3-none-any.whl", "w") as zf:
+            zf.writestr("pkg/core.py", "import os, mycorp_internalx\n")
+        if check(d4) != 0:
+            fails.append("`import mycorp_internalx` was flagged as mycorp_internal")
+    for f in fails:
+        print(f"SELFTEST FAIL: {f}", file=sys.stderr)
+    if not fails:
+        print("SELFTEST PASS: every artifact scanned; comma/from/unparseable imports caught")
+    return 1 if fails else 0
+
+
 def main(argv: list[str]) -> int:
     args = build_parser().parse_args(argv)
+    if args.self_test:
+        return _self_test()
     try:
         return run(args)
     except (ValueError, OSError) as exc:

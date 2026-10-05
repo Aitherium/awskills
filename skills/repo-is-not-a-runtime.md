@@ -98,8 +98,12 @@ itself the finding; report it and move on rather than blocking the gate.
 
 Do it in this order — the cheap reversible steps first:
 
-1. **Reap ephemerals.** Archive diffs, then delete. Biggest win, zero risk when the
-   safety gate is honest. (326 GB here.)
+1. **Reap ephemerals.** Snapshot, then delete. A `git diff` archive is NOT a backup: it
+   silently leaves out untracked files, which is exactly where an agent's new work lives.
+   Use [`agent-worktree-reaper.sh`](../tools/agent-worktree-reaper.sh), which commits
+   tracked and untracked changes into a `reclaim/<name>` branch and verifies the snapshot
+   before removing anything; restore one with `git worktree add <dir> reclaim/<name>`.
+   Biggest win (326 GB here), and low risk only while that snapshot is verified.
 2. **Move caches out.** `.hf-cache`, `.build-tars`, `.cache`, `.iso-out` — pure
    regenerable output. Point them at a path outside the tree by env var.
 3. **Move runtime data out.** `data/`, `logs/`. Needs a service restart, so schedule

@@ -12,6 +12,10 @@ agents run *across* them. This skill uses [AitherZero](aitherzero.md)'s automati
 whole thing: create the control plane, join nodes to the overlay, and deploy mesh-native agents onto
 them — idempotent, one playbook, or step by step.
 
+**Requires:** an AitherZero install that carries the mesh automation scripts and the
+`deploy-mesh-agent` playbook. The public AitherZero repository does not ship them (of the
+scripts below, only `3214` is public), so this runbook needs the full AitherOS distribution.
+
 ## Set up the mesh (one command)
 
 With the AitherZero environment loaded — clone

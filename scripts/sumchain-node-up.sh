@@ -15,10 +15,17 @@
 #
 # Usage (driven by the sanctioned fleet tool, omninode_sumchain_up.py):
 #   SUMCHAIN_GENESIS_B64=... SUMCHAIN_VALKEY_B64=... SUMCHAIN_NODETOML_B64=... \
-#     ./sumchain-node-up.sh [--run|--verify]
+#     ./sumchain-node-up.sh [--run|--verify|--build] [--force-new-key]
 #
 #   --verify  build + start + confirm RPC + block height >= 1, then LEAVE IT RUNNING (default)
 #   --build   build only (no run)
+#   --force-new-key  an existing $SUMCHAIN_HOME/config/validator.key is NEVER overwritten
+#             silently: without this flag the script refuses; with it the old key is
+#             backed up (validator.key.bak-<UTC>) before a fresh one is generated.
+#
+# Safety: the genesis is decoded and parsed BEFORE $SUMCHAIN_HOME/data is wiped, and only
+# the node this script started (pid in $SUMCHAIN_HOME/sumchain.pid) is ever stopped --
+# never every `sumchain run` on the box.
 #
 # Env:
 #   SUMCHAIN_REPO   upstream git URL (default https://github.com/wizzense/sum-chain.git)
@@ -32,7 +39,16 @@ REPO="${SUMCHAIN_REPO:-https://github.com/wizzense/sum-chain.git}"
 REF="${SUMCHAIN_REF:-6f08f5d3}"
 ROOT="${SUMCHAIN_HOME:-$HOME/.sumchain}"
 RPC_PORT="${SUMCHAIN_RPC_PORT:-8545}"
-MODE="${1:---verify}"
+MODE="--verify"
+FORCE_NEW_KEY=0
+for _arg in "$@"; do
+  case "$_arg" in
+    --force-new-key) FORCE_NEW_KEY=1 ;;
+    --verify|--run|--build) MODE="$_arg" ;;
+    *) printf 'ERROR: unknown argument: %s\n' "$_arg" >&2; exit 2 ;;
+  esac
+done
+PIDFILE="$ROOT/sumchain.pid"
 
 say() { printf '\033[36m== %s\033[0m\n' "$*"; }
 die() { printf '\033[31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
@@ -134,13 +150,41 @@ fi
 # ── 3. materialize devnet config with real paths ─────────────────────────────
 say "materializing devnet config"
 CFG="$ROOT/config"; DATA="$ROOT/data"
+mkdir -p "$CFG"
+# VALIDATE FIRST: nothing is wiped until the injected genesis decodes and parses.
+[ -n "${SUMCHAIN_GENESIS_B64:-}" ]  || die "SUMCHAIN_GENESIS_B64 not provided (caller must inject the genesis)"
+printf '%s' "$SUMCHAIN_GENESIS_B64" | base64 -d > "$CFG/dev_genesis.json.new" \
+  || die "SUMCHAIN_GENESIS_B64 is not valid base64"
+python3 -c "import json,sys;json.load(open(sys.argv[1]))" "$CFG/dev_genesis.json.new" \
+  || die "genesis JSON did not parse (nothing was wiped)"
+# Never overwrite an existing validator key silently.
+if [ -e "$CFG/validator.key" ]; then
+  if [ "$FORCE_NEW_KEY" != 1 ]; then
+    rm -f "$CFG/dev_genesis.json.new"
+    die "existing validator key at $CFG/validator.key -- this script generates a NEW key and wipes $DATA. Re-run with --force-new-key to back the old key up and start a fresh devnet (nothing was changed)."
+  fi
+  _bak="$CFG/validator.key.bak-$(date -u +%Y%m%dT%H%M%SZ)"
+  cp -p "$CFG/validator.key" "$_bak" || die "could not back up $CFG/validator.key"
+  [ -f "$CFG/keygen.out" ] && cp -p "$CFG/keygen.out" "$_bak.keygen.out"
+  rm -f "$CFG/validator.key"
+  echo "   backed up the previous validator key to $_bak"
+fi
+mv -f "$CFG/dev_genesis.json.new" "$CFG/dev_genesis.json"
+# Stop ONLY the node this script started earlier (its pidfile), before wiping its data.
+if [ -f "$PIDFILE" ]; then
+  _oldpid="$(tr -dc '0-9' < "$PIDFILE")"
+  if [ -n "$_oldpid" ] && kill -0 "$_oldpid" 2>/dev/null \
+     && ps -p "$_oldpid" -o args= 2>/dev/null | grep -q 'sumchain.* run'; then
+    say "stopping the previous node started by this script (pid $_oldpid)"
+    kill "$_oldpid" 2>/dev/null || true
+    for _ in 1 2 3 4 5 6 7 8 9 10; do kill -0 "$_oldpid" 2>/dev/null || break; sleep 1; done
+  fi
+  rm -f "$PIDFILE"
+fi
 # Genesis is regenerated each bring-up (fresh validator key), so any prior chain state in
 # $DATA would mismatch the new genesis hash — wipe it (devnet state is disposable).
 rm -rf "$DATA"
-mkdir -p "$CFG" "$DATA"
-[ -n "${SUMCHAIN_GENESIS_B64:-}" ]  || die "SUMCHAIN_GENESIS_B64 not provided (caller must inject the genesis)"
-printf '%s' "$SUMCHAIN_GENESIS_B64" | base64 -d > "$CFG/dev_genesis.json"
-python3 -c "import json;json.load(open('$CFG/dev_genesis.json'))" || die "genesis JSON did not parse"
+mkdir -p "$DATA"
 
 # The vendored dev validator.key's pubkey format is rejected by this node build ("Invalid
 # validator public key"). Generate a FRESH keypair with the node's own keygen and align
@@ -199,12 +243,11 @@ echo "   config: $CFG/node.toml (rpc :$RPC_PORT, data $DATA)"
 
 # ── 4. run + verify ──────────────────────────────────────────────────────────
 say "starting SUM Chain validator"
-pkill -f "sumchain run" 2>/dev/null || true
-sleep 1
 LOG="$ROOT/sumchain-run.log"
 RUST_LOG="${RUST_LOG:-info}" nohup "$BIN" run --config "$CFG/node.toml" >"$LOG" 2>&1 &
 NPID=$!
-echo "   pid $NPID, log $LOG"
+echo "$NPID" > "$PIDFILE"
+echo "   pid $NPID (pidfile $PIDFILE), log $LOG"
 
 RPC="http://127.0.0.1:$RPC_PORT"
 say "waiting for RPC + block production at $RPC"
@@ -231,7 +274,7 @@ done
 if [ -n "$height" ] && [ "$height" -ge 1 ] 2>/dev/null; then
   printf '\033[32m== SUMCHAIN OK — validator live, RPC :%s, block height %s\033[0m\n' "$RPC_PORT" "$height"
   echo "   in-network callers: set AITHER_SUMCHAIN_RPC_URL=http://<node-overlay-ip>:$RPC_PORT"
-  echo "   log: $LOG   stop: pkill -f 'sumchain run'"
+  echo "   log: $LOG   stop: kill \$(cat $PIDFILE)"
   exit 0
 else
   echo "   --- RPC never reported a block; last log ---"; tail -40 "$LOG"

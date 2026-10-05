@@ -234,8 +234,6 @@ node --prof-process isolate-*.log > profile.txt
 # Chrome DevTools profiling
 # Open chrome://inspect for Node.js debugging
 
-# v8 profiler
-npm install v8
 ```
 
 ## Examples

@@ -88,7 +88,7 @@ llama-server \
   -m "$MODEL_GGUF" -ngl 43 \
   --spec-type draft-dspark \
   --spec-draft-model "$DRAFT_GGUF" --spec-draft-n-max 3 --spec-draft-ngl 99 \
-  --host 0.0.0.0 --port 8114 \
+  --host 127.0.0.1 --port 8114 \
   --ctx-size 32768 -np 1 --no-context-shift \
   -t 20 -b 1024 -ub 512 -fa on \
   --cache-type-k f16 --cache-type-v f16 \
@@ -97,6 +97,8 @@ llama-server \
 
 Notes that are not arbitrary:
 
+* **`--host 127.0.0.1`.** The server is unauthenticated. To serve other machines, bind the
+  LAN address, add `--api-key <key>`, and firewall the port to the hosts that need it.
 * **`-np 1`.** Concurrent slots divide the context and compete for the same memory
   bandwidth on a memory-bound MoE. One slot is the fast configuration here.
 * **KV stays `f16`.** This architecture is sensitive to KV quantisation; q8/q4 KV is not

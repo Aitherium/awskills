@@ -37,6 +37,8 @@ USAGE
     docker-net-doctor.py clients         # musl vs glibc resolver behaviour
     docker-net-doctor.py policy          # true resolv.conf per container
     docker-net-doctor.py egress          # find Up+healthy containers with NO network
+    docker-net-doctor.py arp             # global ARP table headroom
+    docker-net-doctor.py --self-test     # offline regression test of the exit codes
 
 Exit 0 clean, 1 defect found, 2 could-not-determine (which is a FAILURE, not a
 pass - a check that cannot run tells you nothing).
@@ -52,6 +54,8 @@ import time
 
 RC_OK, RC_DEFECT, RC_UNKNOWN = 0, 1, 2
 _findings: list[tuple[str, str]] = []
+_unknowns: list[tuple[str, str]] = []
+MODES = ("all", "pressure", "kernel", "arp", "binds", "clients", "policy", "egress")
 
 
 def _run(args: list[str], timeout: int = 60) -> tuple[int, str]:
@@ -70,6 +74,12 @@ def _run(args: list[str], timeout: int = 60) -> tuple[int, str]:
 def _defect(name: str, detail: str) -> None:
     _findings.append((name, detail))
     print(f"  [DEFECT] {name}: {detail}")
+
+
+def _unknown(name: str, detail: str) -> None:
+    """A probe that could not run: not a defect, and NOT a pass (exit 2)."""
+    _unknowns.append((name, detail))
+    print(f"  [UNKNOWN] {name}: {detail}")
 
 
 def _ok(name: str, detail: str = "") -> None:
@@ -126,7 +136,7 @@ def check_arp() -> None:
         "dmesg 2>/dev/null | grep 'neighbor table overflow' | tail -1"
     )
     if rc != 0:
-        _defect("arp", "could not read the host neighbour settings")
+        _unknown("arp", "could not read the host neighbour settings")
         return
 
     thresh, uptime, last_overflow = 0, 0.0, None
@@ -206,14 +216,14 @@ def check_pressure() -> None:
     print("\n== PRESSURE (check this FIRST) ==")
     rc, out = _hostshell("nproc; cat /proc/loadavg")
     if rc != 0 or not out.strip():
-        _defect("pressure", "could not read nproc//proc/loadavg - cannot judge scheduling")
+        _unknown("pressure", "could not read nproc//proc/loadavg - cannot judge scheduling")
         return
     lines = [ln for ln in out.splitlines() if ln.strip()]
     try:
         cores = int(lines[0].strip())
         load1, load5, load15 = (float(x) for x in lines[1].split()[:3])
     except (ValueError, IndexError):
-        _defect("pressure", f"unparseable: {out[:120]!r}")
+        _unknown("pressure", f"unparseable: {out[:120]!r}")
         return
 
     ratio = load15 / cores if cores else 0
@@ -264,7 +274,7 @@ def check_kernel() -> None:
         "grep '^Udp:' /proc/net/snmp | tail -1"
     )
     if rc != 0:
-        _defect("kernel", "could not read counters")
+        _unknown("kernel", "could not read counters")
         return
     vals: dict[str, str] = {}
     udp_line = ""
@@ -284,7 +294,7 @@ def check_kernel() -> None:
         else:
             _ok("kernel:conntrack", f"{cnt}/{mx} ({pct:.0%}) - not the cause")
     except ValueError:
-        _defect("kernel:conntrack", "unparseable counters")
+        _unknown("kernel:conntrack", "unparseable counters")
 
     if vals.get("FULL", "0") not in ("0", ""):
         _defect("kernel:conntrack-drops", f"dmesg reports {vals['FULL']} 'table full' events")
@@ -315,7 +325,7 @@ def check_binds() -> None:
     print("\n== dnsmasq BIND RACE (silent: Up + healthy + serving nothing) ==")
     rc, out = _run(["docker", "ps", "--format", "{{.Names}}"])
     if rc != 0:
-        _defect("binds", "docker ps failed")
+        _unknown("binds", "docker ps failed")
         return
     resolvers = [n for n in out.split() if "dns" in n.lower()]
     if not resolvers:
@@ -373,7 +383,7 @@ def check_policy(limit: int = 12) -> None:
     print("\n== RESOLVER POLICY (read the file, not HostConfig.Dns) ==")
     rc, out = _run(["docker", "ps", "--format", "{{.Names}}"])
     if rc != 0:
-        _defect("policy", "docker ps failed")
+        _unknown("policy", "docker ps failed")
         return
     seen: dict[str, list[str]] = {}
     for name in [n for n in out.split() if n][:limit]:
@@ -385,7 +395,7 @@ def check_policy(limit: int = 12) -> None:
         key = " ".join(conf.split())
         seen.setdefault(key, []).append(name)
     if not seen:
-        _defect("policy", "could not read resolv.conf from any container")
+        _unknown("policy", "could not read resolv.conf from any container")
         return
     for key, names in sorted(seen.items(), key=lambda kv: -len(kv[1])):
         print(f"  [{len(names):>3}x] {key}")
@@ -418,11 +428,11 @@ def check_egress(target: str = "", limit: int = 500) -> None:
     print("\n== EGRESS (the check `docker ps` cannot do) ==")
     rc, out = _run(["docker", "ps", "--format", "{{.Names}}"])
     if rc != 0:
-        _defect("egress", "docker ps failed")
+        _unknown("egress", "docker ps failed")
         return
     names = [n for n in out.split() if n][:limit]
     if not names:
-        _defect("egress", "no running containers")
+        _unknown("egress", "no running containers to probe")
         return
 
     # Each container must be probed against a peer on ITS OWN network. Using one
@@ -542,8 +552,50 @@ def check_egress(target: str = "", limit: int = 500) -> None:
         _ok("egress", f"all {len(probeable)} probeable containers reach a same-network peer")
 
 
+def _self_test() -> int:
+    """Offline: fails on the old behaviour (unknown mode ran nothing and exited 0;
+    a probe that could not run exited 1 like a real defect)."""
+    global _run
+    fails: list[str] = []
+    real_run = _run
+    real_argv = sys.argv
+    real_which = shutil.which
+    try:
+        shutil.which = lambda name: "/fake/docker"  # type: ignore[assignment]
+        _run = lambda args, timeout=60: (1, "simulated: cannot connect")  # noqa: E731
+        for argv, want, why in (
+            (["x", "no-such-mode"], RC_UNKNOWN, "an unknown mode"),
+            (["x", "kernel"], RC_UNKNOWN, "a probe that cannot run"),
+            (["x", "binds"], RC_UNKNOWN, "docker ps failing"),
+        ):
+            _findings.clear()
+            _unknowns.clear()
+            sys.argv = argv
+            try:
+                got = main()
+            except SystemExit as exc:  # argparse-style exits count too
+                got = exc.code if isinstance(exc.code, int) else 2
+            if got != want:
+                fails.append(f"{why} exited {got}, expected {want}")
+    finally:
+        _run, sys.argv, shutil.which = real_run, real_argv, real_which  # type: ignore[assignment]
+        _findings.clear()
+        _unknowns.clear()
+    for f in fails:
+        print(f"SELFTEST FAIL: {f}", file=sys.stderr)
+    if not fails:
+        print("SELFTEST PASS: unknown mode and unrunnable probes exit 2")
+    return 1 if fails else 0
+
+
 def main() -> int:
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
+    if mode == "--self-test":
+        return _self_test()
+    if mode not in MODES:
+        print(f"unknown mode {mode!r}; expected one of: {', '.join(MODES)} (or --self-test)",
+              file=sys.stderr)
+        return RC_UNKNOWN
     if not shutil.which("docker"):
         print("docker not on PATH")
         return RC_UNKNOWN
@@ -568,7 +620,16 @@ def main() -> int:
         print(f"VERDICT: {len(_findings)} DEFECT(S) FOUND")
         for n, d in _findings:
             print(f"  - {n}: {d}")
+        if _unknowns:
+            print(f"  ...and {len(_unknowns)} check(s) could not run:")
+            for n, d in _unknowns:
+                print(f"  - {n}: {d}")
         return RC_DEFECT
+    if _unknowns:
+        print(f"VERDICT: COULD NOT JUDGE - {len(_unknowns)} check(s) could not run")
+        for n, d in _unknowns:
+            print(f"  - {n}: {d}")
+        return RC_UNKNOWN
     print("VERDICT: no defects found by these checks")
     print("NOTE: a clean run on an IDLE box proves little - DNS faults here are")
     print("      load-shaped. Re-run under real load before calling it healthy.")

@@ -8,6 +8,8 @@ description: >-
 
 Personal 1040 tax preparation using document ingestion, transaction categorization, deduction discovery, and CPA-ready output.
 
+**Requires:** an AitherOS deployment with the Plutus finance service and its tools (`ingest_batch`, `ledger_summary`, the Bills view); without it, this page is a checklist only.
+
 **⚠️ Important:** This is a draft-preparation tool, not a tax preparer and does not file returns. All output is for CPA review only. Consult a qualified tax professional before filing.
 
 ## Prerequisites
@@ -93,7 +95,7 @@ Returns:
 - Zombie subscriptions (forgotten charges)
 - Monthly and annual totals
 
-Use the Bills view to review and cancel unwanted subscriptions before year-end for tax deduction potential.
+Use the Bills view to review and cancel unwanted subscriptions. (Cancelling a personal subscription does not create a tax deduction.)
 
 ### 7. Build Worksheets (Standard vs. Itemized)
 
