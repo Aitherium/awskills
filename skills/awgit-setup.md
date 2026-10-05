@@ -20,15 +20,15 @@ that is installed but silent is not set up.
 
 ### 1. Install
 ```bash
-pip install awgit            # PyPI (when published)
+pip install awgit            # PyPI
 # or from source:
 git clone https://github.com/aitherium/awgit && cd awgit && pip install -e .
 ```
-Verify: `awgit --help` lists `capture diff status graph evidence merge-preview
-merge-conflicts resolve-conflict lease lease-check bodies dedupe ledger sync hooks`.
-(`graph`, `evidence` and `hooks` were missing from this line, so anyone comparing
-their real output against it saw a mismatch and had to guess whether their install
-was broken. It was not.)
+Verify: `awgit --version` prints a version, and `awgit --help` lists the core
+subcommands `capture diff status graph evidence merge-preview merge-conflicts
+resolve-conflict lease lease-check bodies dedupe ledger sync hooks` among many
+others (most git verbs are also forwarded through awgit, so the full list is long
+and grows between releases).
 
 ### 2. Verify the actor (GitHub identity)
 The actor on every op is the box's VERIFIED GitHub login (via `gh`), resolved
@@ -85,7 +85,7 @@ awgit dedupe --scan .             # quantify byte-identical disk duplication
   To move it, set `VCS_DATA_ROOT` and re-capture.
 
 ## Done
-- [ ] `awgit --help` lists all 12 subcommands
+- [ ] `awgit --help` lists the core subcommands from step 1
 - [ ] `gh auth status` logged in (or consciously accepted the unverified fallback)
 - [ ] `awgit hooks install` reported hooks installed
 - [ ] a real commit editing a `.py` function → `awgit status` shows the op

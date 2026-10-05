@@ -59,8 +59,10 @@ pip install awdk
 adk onboard --quick
 ```
 
-`--quick` detects your hardware, stands up inference, installs an agent pack, and enrolls the
-machine. It asks before anything irreversible.
+`--quick` detects your hardware, stands up inference (skipped if a cloud key is already set),
+installs an agent pack, and enrolls the machine. It does not stop to ask: run `adk onboard
+--quick` only on a machine where that is what you want. A failed pack install or enrollment
+prints the retry command and the chain continues.
 
 **Check — this must print a version, not an error:**
 

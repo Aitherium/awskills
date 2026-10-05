@@ -36,6 +36,14 @@
 # touches no git stamp for hours. Idle time is therefore the newest of the HEAD reflog,
 # the index, AND the mtimes of the changed files themselves.
 #
+# 🪤 TRAP 4: what status never shows. Gitignored files (.env, a local database) are not in
+# `status --porcelain` and not in any snapshot, and `worktree remove --force` deletes them.
+# A worktree holding ignored files outside build/cache dirs is KEPT unless --archive DIR
+# copies them out first. Likewise a detached HEAD's unpushed commits get a reclaim/<name>
+# ref, and a worktree git cannot read is UNKNOWN and kept: a failed status is not "clean".
+# Only true caches (node_modules, __pycache__, .venv, tool caches) count as disposable
+# untracked output; an untracked build/deploy.sh is somebody's file.
+#
 # Usage:
 #   agent-worktree-reaper.sh                        # audit only (default, read-only)
 #   agent-worktree-reaper.sh --reap                 # remove the SAFE ones
@@ -58,8 +66,13 @@ set -uo pipefail
 export MSYS_NO_PATHCONV=1   # Git Bash rewrites "sha:path" arguments; keep them literal
 SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
-# Untracked paths under these names are regenerable output, not work.
-REGEN='node_modules|__pycache__|\.venv|venv|\.pytest_cache|\.ruff_cache|\.mypy_cache|\.next|dist|build|\.turbo|\.cache|coverage|\.tox'
+# UNTRACKED paths under these names are pure caches, not work. Deliberately narrow: an
+# untracked build/deploy.sh or dist/notes.md is someone's file (a wider list deleted one).
+REGEN='node_modules|__pycache__|\.venv|\.pytest_cache|\.ruff_cache|\.mypy_cache|\.tox'
+# IGNORED paths (which status never lists, and `worktree remove --force` deletes) are
+# output only under these names; any other ignored file (.env, a local DB) keeps the
+# worktree unless --archive copies it out first.
+IGN_OK='node_modules|__pycache__|\.venv|venv|\.pytest_cache|\.ruff_cache|\.mypy_cache|\.tox|\.next|dist|build|\.turbo|\.cache|coverage|target|out'
 
 MODE="audit"; ARCHIVE=""; ALL=0; IDLE_H=2; SELFTEST=0
 while [ $# -gt 0 ]; do
@@ -69,7 +82,7 @@ while [ $# -gt 0 ]; do
         --all)     ALL=1 ;;
         --min-idle-hours) IDLE_H="${2:-}"; shift ;;
         --self-test) SELFTEST=1 ;;
-        -h|--help) sed -n '1,58p' "$0"; exit 0 ;;
+        -h|--help) sed -n '1,66p' "$0"; exit 0 ;;
         *) echo "unknown arg: $1" >&2; exit 2 ;;
     esac
     shift
@@ -88,6 +101,36 @@ changed_paths() {
         fi
         printf '%s\n' "$p"
     done
+}
+
+# Can git read this worktree at all? A failed status must never read as "clean".
+git_readable() {
+    git --no-optional-locks -C "$1" status --porcelain >/dev/null 2>&1         && git -C "$1" log -1 --format=%H HEAD >/dev/null 2>&1
+}
+
+# Ignored paths that are NOT build output: what `worktree remove --force` would destroy
+# with no snapshot (git never stores ignored files).
+ignored_work() {
+    git --no-optional-locks -C "$1" status --porcelain --ignored 2>/dev/null | while IFS= read -r ln; do
+        [ "${ln:0:2}" = "!!" ] || continue
+        p="${ln:3}"; p="${p#\"}"; p="${p%\"}"
+        printf '%s\n' "/$p" | grep -Eq "/($IGN_OK)(/|$)" && continue
+        case "$p" in *.pyc|*.log) continue ;; esac
+        printf '%s\n' "$p"
+    done
+}
+
+# Copy ignored work out of a worktree before removal; fail unless every file arrived.
+archive_ignored() {
+    local wt="$1" dest="$2" p n=0 m
+    mkdir -p "$dest" || return 1
+    while IFS= read -r p; do
+        [ -n "$p" ] || continue
+        mkdir -p "$dest/$(dirname "${p%/}")" && cp -a "$wt/${p%/}" "$dest/$(dirname "${p%/}")/" || return 1
+        n=$((n+1))
+    done < <(ignored_work "$wt")
+    m="$(find "$dest" -type f | wc -l)"
+    [ "$m" -ge "$n" ] || return 1
 }
 
 # Newest activity in a worktree, epoch seconds: git stamps + the changed files.
@@ -120,7 +163,7 @@ snapshot() {
     GIT_INDEX_FILE="$idx" git -C "$wt" read-tree HEAD || { rm -f "$idx"; return 1; }
     GIT_INDEX_FILE="$idx" git -C "$wt" add -A -- . \
         ':(exclude,glob)**/node_modules/**' ':(exclude,glob)**/__pycache__/**' \
-        ':(exclude,glob)**/.venv/**' ':(exclude,glob)**/.pytest_cache/**' >/dev/null 2>&1 \
+        ':(exclude,glob)**/.venv/**' ':(exclude,glob)**/.pytest_cache/**'         ':(exclude,glob)**/.ruff_cache/**' ':(exclude,glob)**/.mypy_cache/**'         ':(exclude,glob)**/.tox/**' >/dev/null 2>&1 \
         || { rm -f "$idx"; return 1; }
     tree="$(GIT_INDEX_FILE="$idx" git -C "$wt" write-tree)" || { rm -f "$idx"; return 1; }
     sha="$(git -C "$wt" -c user.name=reaper -c user.email=reaper@localhost commit-tree "$tree" -p "$head" \
@@ -150,9 +193,18 @@ if [ "$SELFTEST" = 1 ]; then
         export GIT_COMMITTER_DATE="@$old" GIT_AUTHOR_DATE="@$old"   # reflog stamps 5 h old
         cd "$T"; git init -q main; cd main
         git config user.email t@t; git config user.name t; git config core.autocrlf false
-        echo a > a.txt; git add a.txt; git -c core.hooksPath=/dev/null commit -qm a
-        git worktree add -q -b w1 .agent-worktrees/w1
-        git worktree add -q -b w2 .agent-worktrees/w2
+        echo a > a.txt; echo .env > .gitignore; git add a.txt .gitignore
+        git -c core.hooksPath=/dev/null commit -qm a
+        for w in w1 w2 w3 w4 w6; do git worktree add -q -b "$w" ".agent-worktrees/$w"; done
+        git worktree add -q --detach .agent-worktrees/w5
+        mkdir -p .agent-worktrees/w3/build
+        echo 'deploy' > .agent-worktrees/w3/build/deploy.sh         # hole 1: not a cache
+        echo 'SECRET=1' > .agent-worktrees/w4/.env                   # hole 3: ignored work
+        echo b > .agent-worktrees/w5/b.txt                           # hole 4: detached commit
+        git -C .agent-worktrees/w5 add b.txt
+        git -C .agent-worktrees/w5 -c core.hooksPath=/dev/null commit -qm detached
+        git -C .agent-worktrees/w5 rev-parse HEAD > "$T/w5.sha"
+        echo garbage > .git/worktrees/w6/index                       # hole 2: git fails
         echo edit >> .agent-worktrees/w1/a.txt
         echo 'x = 1' > .agent-worktrees/w1/new_test.py
         mkdir -p .agent-worktrees/w1/node_modules/p
@@ -160,7 +212,8 @@ if [ "$SELFTEST" = 1 ]; then
         echo fresh > .agent-worktrees/w2/live.py
     ) >/dev/null 2>&1 || { echo "self-test setup failed"; exit 2; }
     W1="$T/main/.agent-worktrees/w1"; W2="$T/main/.agent-worktrees/w2"
-    find "$W1" "$T/main/.git/worktrees/w1" -exec touch -d "@$old" {} + 2>/dev/null
+    WT="$T/main/.agent-worktrees"
+    find "$WT/w1" "$WT/w3" "$WT/w4" "$WT/w5" "$WT/w6" "$T/main/.git/worktrees"         -path "$WT/w2" -prune -o -exec touch -d "@$old" {} + 2>/dev/null
     # w2's git stamps are old too: only its freshly edited file says it is in use (TRAP 3)
     find "$T/main/.git/worktrees/w2" -exec touch -d "@$old" {} + 2>/dev/null
     out="$(cd "$T/main" && AGENT_WT_DIRS=.agent-worktrees bash "$SELF" --reap --all 2>&1)"
@@ -171,6 +224,13 @@ if [ "$SELFTEST" = 1 ]; then
     ck "regenerable dir left out" "[ -z \"\$(git -C '$T/main' ls-tree -r --name-only reclaim/w1 -- node_modules)\" ]"
     ck "recently edited worktree kept (TRAP 3)" "[ -f '$W2/live.py' ]"
     ck "kept one is reported ACTIVE" "printf '%s' \"\$out\" | grep -q 'ACTIVE'"
+    ck "untracked build/ file is work, kept in snapshot" "[ -n \"\$(git -C '$T/main' ls-tree -r --name-only reclaim/w3 -- build/deploy.sh)\" ]"
+    ck "ignored .env keeps its worktree without --archive" "[ -f '$WT/w4/.env' ]"
+    ck "detached unpushed commit kept in reclaim/w5" "[ \"\$(git -C '$T/main' rev-parse reclaim/w5 2>/dev/null)\" = \"\$(cat '$T/w5.sha')\" ]"
+    ck "unreadable worktree reported UNKNOWN and kept" "[ -d '$WT/w6' ] && printf '%s' \"\$out\" | grep -q 'UNKNOWN'"
+    find "$WT/w4" -exec touch -d "@$old" {} + 2>/dev/null
+    out2="$(cd "$T/main" && AGENT_WT_DIRS=.agent-worktrees bash "$SELF" --reap --all --archive "$T/arch" 2>&1)"
+    ck "with --archive, ignored .env copied out first" "[ ! -d '$WT/w4' ] && grep -q SECRET '$T/arch/w4.ignored/.env'"
     [ "$fails" -eq 0 ] && { echo "self-test: ok"; exit 0; }
     echo "self-test: $fails failure(s)"; printf '%s\n' "$out"; exit 1
 fi
@@ -202,22 +262,30 @@ SAFE=(); DIRTY=(); now="$(date +%s)"
 printf "%-34s %-7s %-9s %-6s %-24s %s\n" NAME DIRTY UNPUSHED IDLE_H BRANCH VERDICT
 for d in "${FOUND[@]}"; do
     n="$(basename "$d")"
+    if ! git_readable "$d"; then
+        printf "%-34s %-7s %-9s %-6s %-24s %s
+" "$n" "?" "?" "?" "?" "UNKNOWN(git failed; kept)"
+        continue
+    fi
     dirty="$(changed_paths "$d" | wc -l)"
     # HEAD, not --branches. See TRAP 1.
     unpushed="$(git -C "$d" log HEAD --not --remotes --oneline 2>/dev/null | wc -l)"
     br="$(git -C "$d" rev-parse --abbrev-ref HEAD 2>/dev/null)"
     idle=$(( (now - $(last_active "$d")) / 3600 ))
+    ign="$(ignored_work "$d" | wc -l)"
 
     case " $KEEP " in
         *" $n "*) v="KEEP(pinned)" ;;
         *)  if [ "$idle" -lt "$IDLE_H" ]; then v="ACTIVE(<${IDLE_H}h)"
+            elif [ "$ign" -gt 0 ] && [ -z "$ARCHIVE" ]; then
+                v="KEEP(ignored files: $ign; --archive DIR copies them out)"
             elif [ "${dirty:-0}" -eq 0 ] && [ "${unpushed:-0}" -eq 0 ]; then v="SAFE"; SAFE+=("$d")
             else v="DIRTY"; DIRTY+=("$d"); fi ;;
     esac
     printf "%-34s %-7s %-9s %-6s %-24s %s\n" "$n" "${dirty:-?}" "${unpushed:-?}" "$idle" "${br:0:24}" "$v"
 done
 echo
-echo "safe=${#SAFE[@]}  dirty=${#DIRTY[@]}  (ACTIVE and pinned ones are never touched)"
+echo "safe=${#SAFE[@]}  dirty=${#DIRTY[@]}  (ACTIVE, UNKNOWN, pinned and ignored-file ones are never touched)"
 
 # --- archive (an optional extra copy outside the repo) ----------------------
 if [ -n "$ARCHIVE" ] && [ "${#DIRTY[@]}" -gt 0 ]; then
@@ -246,6 +314,17 @@ for d in "${TARGETS[@]}"; do
         fi
         [ -n "$ARCHIVE" ] && git -C "$d" diff --binary HEAD "$sha" > "$ARCHIVE/$n.snapshot.patch" 2>/dev/null
         echo "  snapshot $n -> reclaim/$n ${sha:0:11}"
+    elif [ -n "$(git -C "$d" log HEAD --not --remotes --oneline 2>/dev/null | head -1)" ]; then
+        # unpushed commits on a detached HEAD are reachable from nothing once it goes
+        git -C "$d" update-ref "refs/heads/reclaim/$n" HEAD \
+            || { echo "  KEPT $n: cannot keep its unpushed commits" >&2; failed=$((failed+1)); continue; }
+        echo "  unpushed commits of $n -> reclaim/$n"
+    fi
+    if [ -n "$(ignored_work "$d" | head -1)" ]; then
+        [ -n "$ARCHIVE" ] || { echo "  KEPT $n: has ignored files and no --archive" >&2; failed=$((failed+1)); continue; }
+        archive_ignored "$d" "$ARCHIVE/$n.ignored" \
+            || { echo "  KEPT $n: could not copy its ignored files out" >&2; failed=$((failed+1)); continue; }
+        echo "  ignored files of $n -> $ARCHIVE/$n.ignored"
     fi
     # `git worktree remove` also drops the registration; rm -rf alone leaves a stale entry.
     if git worktree remove --force "$d" 2>/dev/null && [ ! -e "$d" ]; then

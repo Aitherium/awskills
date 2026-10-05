@@ -33,7 +33,7 @@ hermes model     # interactive picker
 ```
 
 Choose **custom** and give it the endpoint from [`local-inference`](local-inference.md). To do
-it in the config file instead, edit `~/.hermes/cli-config.yaml`:
+it in the config file instead, edit `~/.hermes/config.yaml` (or use `hermes config set <section.key> <value>`):
 
 ```yaml
 model:

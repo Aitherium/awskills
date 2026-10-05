@@ -56,7 +56,7 @@ the VM is fully shut down (`wsl --shutdown`) and brought back.
 
 ## The guard
 
-Two rules, both mechanical:
+Three rules, all mechanical:
 
 **1. Never `docker compose build` a large set with the fleet resident.** Build on a
 memory-capped `docker-container` builder so a runaway build is OOM-killed *inside* the
@@ -125,6 +125,9 @@ wsl --shutdown
 Start-Sleep 15
 Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 ```
+
+`wsl --shutdown` stops **every** WSL distro on the machine, not only Docker's — stop or save
+work in any other distro first.
 
 Then wait — the engine can take several minutes to remount its data disk. If it still won't
 start, check `%LOCALAPPDATA%\Docker\log\vm\init.log` for the `Device offlined` line before

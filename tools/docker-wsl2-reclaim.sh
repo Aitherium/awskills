@@ -27,9 +27,19 @@
 # host file). Skip fstrim and compaction reclaims almost nothing.
 #
 # Usage:
-#   docker-wsl2-reclaim.sh              # diagnose only — safe, read-only
+#   docker-wsl2-reclaim.sh              # diagnose only — changes no data, BUT it runs
+#                                       #   `wsl.exe -d $DOCKER_WSL_DISTRO`, which BOOTS
+#                                       #   that distro (and the shared WSL VM) if stopped
 #   docker-wsl2-reclaim.sh --trim       # prune + fstrim (no downtime, no admin)
-#   docker-wsl2-reclaim.sh --plan       # print the admin compaction recipe
+#   docker-wsl2-reclaim.sh --plan       # print the admin compaction recipe (no wsl calls)
+#
+# Env:
+#   DOCKER_WSL_VHDX     exact path of Docker's data VHDX; used FIRST and never second-
+#                       guessed (if set but missing, the script says so and stops looking)
+#   DOCKER_WSL_DISTRO   distro for the in-VM layer (default docker-desktop)
+#   DOCKER_WSL_DATA_MNT data mount inside it (default /mnt/docker-desktop-disk)
+#
+# The chosen VHDX path and how it was found are always printed (stderr).
 #
 # Compaction itself is NOT done here: it needs the VM shut down AND administrator,
 # so it cannot be made safe to run unattended from inside a session. --plan prints
@@ -45,6 +55,15 @@ _wsl() { wsl.exe -d "$DISTRO" -e sh -c "$1" 2>/dev/null | tr -d '\r'; }
 find_vhdx() {
     # Docker Desktop's data disk. Location follows the "Disk image location"
     # setting, so probe the usual spots rather than assuming.
+    # 1. An explicit DOCKER_WSL_VHDX always wins.
+    if [ -n "${DOCKER_WSL_VHDX:-}" ]; then
+        if [ -f "$DOCKER_WSL_VHDX" ]; then
+            echo "vhdx: $DOCKER_WSL_VHDX (from DOCKER_WSL_VHDX)" >&2
+            echo "$DOCKER_WSL_VHDX"; return 0
+        fi
+        echo "vhdx: DOCKER_WSL_VHDX=$DOCKER_WSL_VHDX does not exist" >&2
+        return 1
+    fi
     # `set -u` is on and neither LOCALAPPDATA nor USER is guaranteed to exist in
     # a Git-Bash / CI shell — dereferencing them bare aborts the whole script
     # before it can report anything. Default them, then skip empty candidates.
@@ -55,13 +74,19 @@ find_vhdx() {
         "${who:+/c/Users/$who/AppData/Local/Docker/wsl/disk/docker_data.vhdx}"
     do
         [ -n "$c" ] || continue
-        [ -f "$c" ] && { echo "$c"; return 0; }
+        [ -f "$c" ] && { echo "vhdx: $c (known Docker Desktop location)" >&2; echo "$c"; return 0; }
     done
-    # Fall back to a scan of common data roots (cheap: maxdepth 4).
-    for root in /c /d /e /f /g; do
+    # Fall back to a scan of common data roots (cheap: maxdepth 5). ONLY Docker
+    # Desktop's own disks: `docker_data.vhdx`, or an ext4.vhdx under a Docker/wsl
+    # or DockerDesktopWSL directory -- a bare ext4.vhdx is every OTHER distro's disk
+    # too. -printf keeps paths with spaces intact (xargs ls split them).
+    # DOCKER_WSL_SCAN_ROOTS overrides the roots (used by --self-test).
+    for root in ${DOCKER_WSL_SCAN_ROOTS:-/c /d /e /f /g}; do
         [ -d "$root" ] || continue
-        c="$(find "$root" -maxdepth 5 \( -name 'docker_data.vhdx' -o -name 'ext4.vhdx' \) 2>/dev/null              | xargs -r ls -S 2>/dev/null | head -1)"
-        [ -n "$c" ] && { echo "$c"; return 0; }
+        c="$(find "$root" -maxdepth 5 -type f \( -name 'docker_data.vhdx' \
+                -o \( -name 'ext4.vhdx' \( -path '*/DockerDesktopWSL/*' -o -path '*/Docker/wsl/*' \) \) \) \
+                -printf '%s\t%p\n' 2>/dev/null | sort -t "$(printf '\t')" -k1,1nr | head -1 | cut -f2-)"
+        [ -n "$c" ] && { echo "vhdx: $c (largest Docker Desktop disk found by scanning $root)" >&2; echo "$c"; return 0; }
     done
     return 1
 }
@@ -160,9 +185,29 @@ PREVENTING THE REGROWTH
 EOF
 }
 
+self_test() {
+    # Offline: only find_vhdx, against a temp tree. Never calls wsl or docker.
+    local t fails=0 got
+    t="$(mktemp -d)" || exit 2
+    mkdir -p "$t/root/Ubuntu Big" "$t/root/My Disks/DockerDesktopWSL/disk" "$t/root/x"
+    head -c 4096 /dev/zero > "$t/root/Ubuntu Big/ext4.vhdx"           # another distro, LARGER
+    head -c 1024 /dev/zero > "$t/root/My Disks/DockerDesktopWSL/disk/docker_data.vhdx"
+    head -c 10 /dev/zero > "$t/root/x/explicit disk.vhdx"
+    got="$(LOCALAPPDATA='' USER='' USERNAME='' DOCKER_WSL_VHDX='' DOCKER_WSL_SCAN_ROOTS="$t/root" find_vhdx 2>/dev/null)"
+    [ "$got" = "$t/root/My Disks/DockerDesktopWSL/disk/docker_data.vhdx" ] \
+        || { echo "SELFTEST FAIL: scan picked '$got' (want Docker's disk, path with spaces, not another distro's)" >&2; fails=1; }
+    got="$(LOCALAPPDATA='' USER='' USERNAME='' DOCKER_WSL_VHDX="$t/root/x/explicit disk.vhdx" DOCKER_WSL_SCAN_ROOTS="$t/root" find_vhdx 2>/dev/null)"
+    [ "$got" = "$t/root/x/explicit disk.vhdx" ] \
+        || { echo "SELFTEST FAIL: DOCKER_WSL_VHDX was not honoured (got '$got')" >&2; fails=1; }
+    rm -rf "$t"
+    [ "$fails" = 0 ] && echo "SELFTEST PASS: DOCKER_WSL_VHDX honoured; scan picks only Docker's disk; spaces survive"
+    return "$fails"
+}
+
 case "$MODE" in
     diagnose|"") diagnose ;;
     --trim)      diagnose; echo; do_trim ;;
     --plan)      print_plan ;;
-    *) echo "usage: $0 [--trim|--plan]" >&2; exit 2 ;;
+    --self-test) self_test; exit $? ;;
+    *) echo "usage: $0 [--trim|--plan|--self-test]" >&2; exit 2 ;;
 esac

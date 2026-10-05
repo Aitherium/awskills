@@ -12,6 +12,9 @@ regions — auth, api, data, ui, service — and answers *"where is rate limitin
 with the directories to search **first**. It's the cheap scout that makes
 [CodeGraph](aither-codegraph.md)/grep pay off instead of scanning everything.
 
+**Requires:** an AitherOS deployment that serves the `prospector` tool pack (the MCP
+`apply_pack_self` tool and the `map_*` tools come from that gateway).
+
 > This is the capability that feeds CodeGraph: localize → then search inside the hits.
 
 ## Give an agent the tools (self-service)

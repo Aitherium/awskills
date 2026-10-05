@@ -32,13 +32,13 @@ The mesh overlay (Conductor-assigned `10.77.0.0/16`) is how nodes reach each oth
 
 ```bash
 adk mesh onboard --role worker  # join this node into the AitherMesh WireGuard overlay
-adk mesh join --headscale       # NAT/CGNAT/firewall-friendly transport when raw WireGuard UDP is blocked
+adk mesh onboard --headscale    # NAT/CGNAT/firewall-friendly transport when raw WireGuard UDP is blocked
 adk mesh ls                     # list the peers your agents can now reach
 ```
 
 `--headscale` routes the tunnel through a Headscale control plane when raw WireGuard `UDP:51820`
 isn't viable; the overlay IP is still Conductor-assigned, and it falls back to raw WireGuard
-automatically if Headscale setup fails. See `adk mesh join --help` for the transport and
+automatically if Headscale setup fails. See `adk mesh onboard --help` for the transport and
 control-plane options.
 
 ## Connect your browser

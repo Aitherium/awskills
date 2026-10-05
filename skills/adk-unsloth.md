@@ -48,7 +48,7 @@ unsloth studio -p 8888
 ```bash
 adk backend list                  # what the ADK already detects
 adk backend guide                 # step-by-step for a specific backend
-adk backend switch                # change the live backend, no restart
+adk backend set vllm --base-url <Unsloth's OpenAI-compatible /v1 URL>   # point the ADK at it
 adk backend test                  # prove it actually answers
 adk backend status                # current config + connectivity
 ```

@@ -28,12 +28,13 @@ embedder captures call/def structure. Never mix them in one graph.
 | **docs / a KB** (`.md`, `.pdf`, prose) | `text` (nomic-embed-text, 768-dim) | semantic prose retrieval |
 | **both** | two graphs, one per space | querying code with a text embedder returns garbage |
 
-`--as` overrides the guess. If the path is mostly source, default to `code`.
+This skill's `--as code|docs` argument overrides the guess. It only decides which embedder you
+serve (`--embedder code` or `--embedder text` below); the toolpack CLI has no `--as` flag. If the
+path is mostly source, default to `code`.
 
 ## Step 1 — Stand up (and PROVE) the embedder
 
-Skip this if you're using the fleet's already-running embedder at
-`https://…:8209` — just verify it. Otherwise:
+Skip this if you already have an embedder running — just verify it. Otherwise:
 
 ```bash
 python -m adk.toolpacks.graphrag detect                       # what fits
@@ -44,8 +45,12 @@ python -m adk.toolpacks.graphrag apply --embedder text        # launches vLLM de
 Then the check that actually matters:
 
 ```bash
-python -m adk.toolpacks.graphrag verify-embedder --embedder text --base-url https://localhost:8209
+python -m adk.toolpacks.graphrag verify-embedder --embedder text --base-url http://localhost:8209
 ```
+
+`apply` launches vLLM over plain HTTP on `:8209` (text) or `:8212` (code), listening on all
+interfaces with no auth — firewall that port. Use `https://` only for an endpoint that actually
+serves TLS.
 
 - `healthy` — up **and** returns a vector of the expected dimension (768 for
   nomic-embed-text). Only now proceed.
@@ -83,7 +88,9 @@ codegraph_get_context <symbol>          # callers/callees around a symbol
 ```
 
 Use both when you want structure AND semantic retrieval: CodeGraph for the call
-graph, `rag_ingest --as code` (CodeRankEmbed) for similarity search over code.
+graph, and a code embedder (`apply --embedder code`, CodeRankEmbed on `:8212`) for similarity
+search over code. `ingest` has no embedder switch; keep code and prose in separate agents'
+graphs (`--agent`).
 
 ## Step 3 — PROVE retrieval (the step everyone skips)
 

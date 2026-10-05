@@ -34,6 +34,10 @@ bash scripts/omninode-node-up.sh --listen
 OMNINODE_REF=<git-sha> bash scripts/omninode-node-up.sh
 ```
 
+`OMNINODE_REF` must be a sha, tag or branch the upstream repo has. If the checkout fails the
+script does **not** stop: it builds whatever is checked out. Compare the `revision` line it prints
+with the ref you asked for.
+
 Exit 0 with `NODE OK` means the binary built and peer discovery works on your machine. If discovery
 doesn't complete, it's almost always a firewall or an mDNS-unfriendly network — the build itself is
 fine.
@@ -45,14 +49,14 @@ the agent substrate. When the `adk` CLI is on your PATH the script offers to enr
 **AitherMesh** overlay so adk agents discover it as a mesh peer:
 
 ```bash
-bash scripts/omninode-node-up.sh --adk      # build, verify, then `adk mesh onboard --role worker`
+OMNINODE_ADK=1 bash scripts/omninode-node-up.sh   # build, verify, then `adk mesh onboard --role worker`
+# (equivalent: bash scripts/omninode-node-up.sh --verify --adk; a lone --adk is read as the mode and does not onboard)
 # or, any time after:
 adk mesh onboard --role worker           # join this box to the mesh
 adk mesh ls                              # see the peers your agents can reach
 ```
 
 The goal is a single, coherent substrate — **awdk / awnode / awconnect / AitherMesh +
-The goal is a single, coherent substrate — **awdk / AitherNode / Awconnect / AitherMesh +
 OmniNode** — where standing up compute and having your agents use it is one motion, not two projects.
 
 ## Notes

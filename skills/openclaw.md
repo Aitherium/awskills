@@ -76,15 +76,18 @@ It detects `~/.openclaw/`, writes the MCP server config, and reports what it cha
 ```bash
 adk integrate openclaw --dry-run              # show the config, write nothing
 adk integrate openclaw --mode local           # local | cloud | hybrid | auto (default: auto)
-adk integrate openclaw --api-key <key>        # for cloud mode
 adk integrate openclaw --force                # overwrite an existing integration
-aither integrate list                            # what else can be integrated
+adk integrate list                            # what else can be integrated
 ```
+
+For cloud mode the key comes from `AITHER_API_KEY` in the environment, or `api_key` in
+`~/.aither/config.json`. Prefer those to `--api-key <key>`, which leaves the key in your shell
+history and the process list.
 
 **Always run `--dry-run` first.** It prints the exact config it would write, which is also the
 config you'd write by hand if the command isn't available to you.
 
-`aither` ships with the toolkit — if the command isn't found, install it first:
+`adk` ships with the toolkit — if the command isn't found, install it first:
 
 ```bash
 pip install awdk
@@ -138,7 +141,7 @@ Use the first if OpenClaw is your daily driver. Use the second if `adk` is.
 | File | Purpose |
 |---|---|
 | `AGENTS.md` | project/agent context |
-| `SOUL.md | identity and voice |
+| `SOUL.md` | identity and voice |
 | `TOOLS.md` | tool usage guidance |
 
 Keep them short. They cost context on **every** turn, unlike skills — which load only when
@@ -149,7 +152,7 @@ relevant. Anything procedural belongs in a skill, not in `TOOLS.md`.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Still billing a hosted provider | config didn't take | validate the JSON; confirm `ollama ps` shows a load |
-| `aither: command not found` | toolkit not installed | `pip install awdk` |
+| `adk: command not found` | toolkit not installed | `pip install awdk` |
 | Integration ran, no new tools | daemon not restarted | restart the OpenClaw daemon |
 | Skills not visible | wrong layout | must be `<name>/SKILL.md`, not a flat `.md` |
 | Model answers slowly | CPU inference | expected — see [`local-inference`](local-inference.md) |

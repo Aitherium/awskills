@@ -5,7 +5,7 @@ description: Install and run Tau, a minimalist terminal coding agent in Python �
 
 # tau — a minimalist terminal coding agent you can actually read
 
-[Tau](https://github.com/wizzense/tau) (MIT, Python 3.12+) is a terminal coding agent: it
+[Tau](https://github.com/huggingface/tau) (MIT, Python 3.12+) is a terminal coding agent: it
 reads files, edits code, runs commands, and keeps session history. It's a Python port of Pi's
 minimalist agent — small enough that you can read the whole thing, which makes it a good
 choice when you want to *understand* your agent rather than just use it.

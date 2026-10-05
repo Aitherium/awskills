@@ -50,7 +50,7 @@ The gate: a worktree is safe only with **no uncommitted changes**, **no unpushed
 commits**, and **no activity for `--min-idle-hours`** (default 2).
 
 ```bash
-git --no-optional-locks -C "$wt" status --porcelain   # untracked COUNTED; build dirs ignored
+git --no-optional-locks -C "$wt" status --porcelain   # untracked COUNTED; only caches skipped
 git -C "$wt" log HEAD --not --remotes                 # commits missing from every remote
 ```
 
@@ -64,9 +64,17 @@ them. **If your audit says every worktree is dirty, suspect your query, not your
 🪤 **Untracked files are work.** An agent's new file stays untracked until it commits.
 This skill used to say "use `-uno`" and archive `git diff HEAD`. Neither sees untracked
 files, so archive-then-delete destroyed exactly the newest work. Live (2026-10-04): a
-reaped worktree held a 376-line test that existed only as an untracked file. Ignore
-untracked files only under regenerable directories (`node_modules`, `__pycache__`,
-`dist`, `build`, caches).
+reaped worktree held a 376-line test that existed only as an untracked file. Skip
+untracked files only under pure caches (`node_modules`, `__pycache__`, `.venv`, tool
+caches). Not `build/` or `dist/`: an untracked `build/deploy.sh` is someone's file, and
+an audit of this skill's own reaper deleted exactly that before it was narrowed.
+
+🪤 **What status never shows.** Gitignored files (`.env`, a local database) appear in no
+`status --porcelain` and in no snapshot, and `git worktree remove --force` deletes them.
+Check `git status --porcelain --ignored` (`!!` lines) and keep any worktree whose ignored
+files are not build output, or copy them out first (`--archive DIR`). Two more silent
+losses: a detached HEAD's unpushed commits become unreachable (give them a ref before
+removal), and a worktree git cannot read must count as UNKNOWN, never as clean.
 
 🪤 **Git activity is not activity.** A session editing files without staging touches no
 git stamp for hours. Judge idle time by the newest of the HEAD reflog, the index **and

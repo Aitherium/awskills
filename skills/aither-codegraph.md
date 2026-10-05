@@ -87,7 +87,7 @@ results — which is why `awgraph stats` always prints coverage.
 pip install awdk
 cd /path/to/your/python/project
 adk run            # detects Python → "Indexing N files... M chunks in Xs" → tools attached
-adk chat           # now ask: "where is rate limiting enforced?"
+adk chat <agent>   # name from `adk agents ls`; ask: "where is rate limiting enforced?"
 ```
 
 Your agent gains:

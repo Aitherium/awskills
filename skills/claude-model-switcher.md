@@ -8,6 +8,10 @@ description: Switch Claude Code between DeepSeek (native 1M context), Kimi, loca
 Switch Claude Code CLI to **DeepSeek V4 Flash** (1M context), **DeepSeek V4 Pro** (1M, reasoning),
 **Kimi K3** (1M), **local open-weight models** (free), or back to **stock Anthropic** — one command.
 
+**Requires:** awdk (`adk`) installed; your own DeepSeek/Kimi API key for those profiles; the
+local `aither-*` profiles additionally need an AitherOS deployment running the Claude bridge and
+model router.
+
 ```bash
 adk claude-model use deepseek-flash   # 1M context, fast, native Anthropic API
 adk claude-model use deepseek-pro     # 1M context, deep reasoning, native

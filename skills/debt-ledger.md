@@ -113,7 +113,7 @@ per-platform notes in [`hooks/README.md`](../hooks/README.md).
 ```bash
 mkdir -p .claude/hooks
 cp hooks/hook_common.py hooks/stop_debt_ledger.py .claude/hooks/
-python3 hooks/test_hooks.py     # 21 cases, mutation-verified
+python3 hooks/test_hooks.py     # 35 cases, mutation-verified
 ```
 
 Then add the `Stop` entry from `hooks/README.md` to `.claude/settings.json` and restart
