@@ -6,7 +6,7 @@ Three skills in this pack describe a discipline that only works if something enf
 |---|---|---|
 | [`prove-it-live`](../skills/prove-it-live.md) | green / 200 / deployed ≠ done | `stop_live_proof.py` |
 | [`debt-ledger`](../skills/debt-ledger.md) | debt found is debt recorded, same turn | `stop_debt_ledger.py` |
-| [`automate-the-manual`](../skills/automate-the-manual.md) | work done by hand twice is a script that was never written | `stop_automation_gap.py` |
+| `automate-the-manual` (not in this pack) | work done by hand twice is a script that was never written | `stop_automation_gap.py` |
 | [`concurrent-safe-git`](../skills/concurrent-safe-git.md) | raw worktree-wide git in a shared checkout reverts someone else's work | `pre_bash_git_guard.py` (PreToolUse on Bash) |
 
 All are **Stop hooks**: they run when the agent tries to end a turn, and can refuse.
