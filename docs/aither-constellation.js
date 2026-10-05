@@ -34,6 +34,7 @@
     { id: "awgit", label: "awgit", blurb: "Semantic version control on top of git —..." },
     { id: "awdelphi", label: "awdelphi", blurb: "Anonymous multi-round expert panels — a..." },
     { id: "awclassify", label: "awclassify", blurb: "Classify any document -- what it is, who may..." },
+    { id: "awdecide", label: "awdecide", blurb: "One typed-decision contract -- choice / score..." },
     { id: "awtoll", label: "awtoll", blurb: "What every tool call costs you in context,..." },
     { id: "awseal", label: "awseal", blurb: "Sign an artifact so a stranger can verify it" },
     { id: "awshare", label: "awshare", blurb: "Publish an artifact and fetch it back verified" },
