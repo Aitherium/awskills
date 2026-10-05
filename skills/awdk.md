@@ -55,6 +55,30 @@ adk doctor                      # check inference, packs, enrollment, and mesh h
 Pack customization is written to an overlay (`~/.aither/agents/<pack>/agent.yaml.local`) — your
 edits survive pack updates and never touch the shipped pack.
 
+## Aither Hearth: your agent, reachable from your phone
+
+`adk home` (also installed as `aither-hearth`) runs one personal agent that answers only you,
+on the chat apps you already use:
+
+```bash
+adk home init --name pip                # your agent's home folder
+adk home model --byo anthropic          # or --local ollama | llamacpp | bonsai
+adk home signin                         # Sign in with Aitherium
+export HEARTH_TELEGRAM_TOKEN=...        # a Telegram bot token from @BotFather
+adk home serve --channels telegram --pair  # prints a 6-digit code: DM it to the bot
+adk home channels                       # relay, telegram, discord, slack, email, whatsapp, sms, local
+```
+
+Channel credentials come from the environment (`HEARTH_TELEGRAM_TOKEN`, `HEARTH_SLACK_BOT_TOKEN`,
+...), never from a flag. The agent messages you first when a reminder is due, and anything that
+sends, books or adds (email, calendar event, to-do, a recurring follow-up) waits for your
+`yes <code>`. `adk home receipts --verify` checks the signed log of what it did (exit 0 intact,
+1 tampered, 2 cannot judge). A workspace admin can connect Google calendar and mail at
+`api.aitherium.com/admin?tab=connections` (admin-only) after `adk home signin`; Microsoft 365 is
+not available yet. On the same machine,
+`adk home say "…"`, `adk home events` and `/hearth` in `adk-shell` talk to the running serve.
+The full guide is `docs/agent-home.md` in the awdk repository.
+
 ## Log in & enroll (optional, for the portal + fleet)
 
 ```bash
@@ -67,8 +91,7 @@ self-hosted nodes are uncapped by default — caps only apply on the metered hos
 
 ## Part of one substrate
 
-awdk is the runtime the rest plug into: stand up hardware as an [awnode](awnode.md),
-awdk is the runtime the rest plug into: stand up hardware as an [AitherNode](aithernode.md),
+awdk is the runtime the rest plug into: stand up hardware as an [awnode](aithernode.md),
 wire it to the control plane with [Awconnect](awconnect.md), provision the box with
 [AitherZero](aitherzero.md), and pool compute across machines with
 [OmniNode](omninode-node.md) over AitherMesh. Standing up compute and having your agents use it

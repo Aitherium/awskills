@@ -125,7 +125,7 @@ curl http://127.0.0.1:8788/health          # → {"ok": true, "headroom": "0.25.
 ## Part of one substrate
 
 headroom is the efficiency wedge under the rest: stand up a box as an
-[awnode](awnode.md), run agents with [awdk](awdk.md), and every LLM call
+[awnode](aithernode.md), run agents with [awdk](awdk.md), and every LLM call
 your agents make gets cheaper without touching a single caller. Local compute is already `$0`;
 this makes cloud calls smaller too.
 
