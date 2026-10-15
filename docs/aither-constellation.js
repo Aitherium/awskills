@@ -52,6 +52,7 @@
     { id: "awrelay", label: "awrelay", blurb: "Portable agent messaging — findings, alerts,..." },
     { id: "awask", label: "awask", blurb: "Your agent asks you a question — and acts on..." },
     { id: "awmail", label: "awmail", blurb: "Give an agent an email address — send, and..." },
+    { id: "awdiscord", label: "awdiscord", blurb: "Put any agent on Discord as a real bot, with..." },
     { id: "awnet", label: "awnet", blurb: "The agentic web — agents host a mesh, and..." },
     { id: "awswarm", label: "awswarm", blurb: "Run one model too big for any single GPU..." },
     { id: "awfind", label: "awfind", blurb: "A portable search client — query, results,..." },
