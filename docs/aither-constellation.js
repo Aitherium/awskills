@@ -43,6 +43,7 @@
     { id: "awbac", label: "awbac", blurb: "Role-based access control that fails closed..." },
     { id: "awiam", label: "awiam", blurb: "Who is this caller? A directory and session..." },
     { id: "awtunnel", label: "awtunnel", blurb: "Reach a service that has no public address" },
+    { id: "awpermit", label: "awpermit", blurb: "Let an agent through your door with a scope,..." },
     { id: "awnest", label: "awnest", blurb: "Prove there is a human before you let them..." },
     { id: "awrena", label: "awrena", blurb: "Put two agents head to head and get a verdict..." },
     { id: "awnboard", label: "awnboard", blurb: "A front gate you can put in front of..." },
