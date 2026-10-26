@@ -410,6 +410,7 @@ behind the directory.
 | [`bonsai-27b`](skills/bonsai-27b.md) | Run a 27B model in ~3.8 GB on a plain CPU box. |
 | [`bonsai2-27b`](skills/bonsai2-27b.md) | Serve PrismML's Bonsai 2 27B (Ternary-Bonsai-2-27B, PTQ1_0 5.9 GB or PQ2_0 7.2 GB) as an OpenAI-compatible endpoint with the PrismML llama.cpp fork. |
 | [`character-forge`](skills/character-forge.md) | Character Forge — consistent characters, animation, talking avatars. |
+| [`claude-code-hooks-fast`](skills/claude-code-hooks-fast.md) | Make Claude Code hooks cheap, especially on Windows, where every shell-form hook quietly starts four processes on every tool call. |
 | [`claude-model-switcher`](skills/claude-model-switcher.md) | Switch Claude Code between DeepSeek (native 1M context), Kimi, local AitherOS models, and stock Anthropic — one command, no manual config. |
 | [`code-like-david`](skills/code-like-david.md) | Renamed to `awknowledge`. |
 | [`compare-versions`](skills/compare-versions.md) | Compare two versions of a file, commit, or release and report structural and behavioral diffs |
@@ -437,8 +438,10 @@ behind the directory.
 | [`hermes-agent`](skills/hermes-agent.md) | Install Nous Research's Hermes agent and run it on your own model — a self-improving agent with persistent memory, autonomous skill creation, cron automation and multi-platform messaging. |
 | [`hetzner-fleet`](skills/hetzner-fleet.md) | Provision bare metal and VPS directly into your mesh from Hetzner Cloud. |
 | [`install-skills`](skills/install-skills.md) | Install this skill pack into whatever agent you already use — Claude Code, OpenClaw, Hermes, Cursor, Goose, Codex, Gemini CLI, or any Agent-Skills-compatible client. |
+| [`lan-latency`](skills/lan-latency.md) | Fix a wired desktop or node that pings its own router at tens of milliseconds with jitter and zero NIC errors. |
 | [`local-image-generation`](skills/local-image-generation.md) | Give an agent the ability to draw — generating images on the machine it is already running on, via ComfyUI, Sana, SD.Next/A1111 or an in-browser model. |
 | [`local-inference`](skills/local-inference.md) | Run a language model on your own hardware for free — pick the right backend (Ollama, llama.cpp, or vLLM) for the machine you actually have, download and quantize a model that fits in memory, serve it on an … |
+| [`local-research`](skills/local-research.md) | Delegate codebase and web exploration to the local aither-local MCP server so frontier context stays small. |
 | [`moat-guard`](skills/moat-guard.md) | Open-core release hygiene — verify a build doesn't leak private code before publishing, and purge leaks that already shipped (GitHub releases/tags/history + index yank list) |
 | [`model-fitness-benchmark`](skills/model-fitness-benchmark.md) | Decide whether a candidate model is fit to run an agent stack, using hard oracles instead of vibes or vendor tables. |
 | [`model-quantization`](skills/model-quantization.md) | Quantize an LLM to 4-bit with AutoRound — RTN runs free on local CPU+GPU; keeps lm_head/projectors in bf16 and dodges the new-architecture crashes |
@@ -465,6 +468,8 @@ behind the directory.
 | [`split-inference`](skills/split-inference.md) | Shard ONE model across MULTIPLE machines' GPUs with llama.cpp RPC — build with -DGGML_RPC=ON, start rpc-server on the backend hosts, launch the main server with --rpc, and PROVE the split is real instead of a silent … |
 | [`tau`](skills/tau.md) | Install and run Tau, a minimalist terminal coding agent in Python — point it at your own local model via ~/.tau/catalog.toml instead of a paid API, install this skill pack into its skills directory, and use the /skill: … |
 | [`website-as-code`](skills/website-as-code.md) | Deploy a website as code — GitHub Pages frontend + Cloudflare Tunnel backend on any machine + an automated never-show-a-raw-error fallback. |
+| [`windows-kernel-leak`](skills/windows-kernel-leak.md) | Diagnose a Windows box where every program starts slowly (hooks time out, a bare `cmd /c exit` takes seconds) by measuring the kernel pool first. |
+| [`worktrees`](skills/worktrees.md) | Make, list and retire agent git worktrees through `awgit wt` — never raw `git worktree add/remove`. |
 | [`xy-charts`](skills/xy-charts.md) | Render data charts (line/scatter/bar/heatmap/pie/histogram/density) to PNG/SVG/JPEG/WebP/PDF or self-contained interactive HTML via the xy engine — for metrics, benchmarks, report figures, dashboard panels, and any … |
 <!-- skill-catalog:end -->
 
@@ -663,7 +668,7 @@ Every repository here is public. Each publishes an `aither-manifest.json` beside
 **awskills** is one of several open repositories cut from the same system. They
 share one set of engineering rules, published as the Developer Codex.
 
-**New here? → [Read the Codex](https://aitherium.github.io/awskills/codex.html)** — eighteen laws for building software
+**New here? → [Read the Codex](https://aitherium.github.io/awskills/codex.html)** — twenty-nine laws for building software
 that tells you when it is wrong, plus a four-chapter ramp if you have never
 worked with a coding agent. **Contributing? → [CONTRIBUTING.md](CONTRIBUTING.md)**
 
