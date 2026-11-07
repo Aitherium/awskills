@@ -668,7 +668,7 @@ Every repository here is public. Each publishes an `aither-manifest.json` beside
 **awskills** is one of several open repositories cut from the same system. They
 share one set of engineering rules, published as the Developer Codex.
 
-**New here? → [Read the Codex](https://aitherium.github.io/awskills/codex.html)** — twenty-nine laws for building software
+**New here? → [Read the Codex](https://aitherium.github.io/awskills/codex.html)** — eighteen laws for building software
 that tells you when it is wrong, plus a four-chapter ramp if you have never
 worked with a coding agent. **Contributing? → [CONTRIBUTING.md](CONTRIBUTING.md)**
 

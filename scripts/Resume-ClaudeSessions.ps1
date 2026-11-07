@@ -412,6 +412,67 @@ function Get-StaleClaudeSessions {
     $out
 }
 
+function ConvertTo-ClaudeProjectFolderName([string]$Dir) {
+    # Claude Code's own encoding of a session's START directory into its folder
+    # under ~/.claude/projects: every non-alphanumeric becomes '-'
+    # (C:\AitherOS-Fresh -> C--AitherOS-Fresh).
+    $Dir -replace '[^A-Za-z0-9]', '-'
+}
+
+function Resolve-SessionStartDir {
+    <# The directory a tab must reopen in. A journal's tail cwd is wherever the
+       session's shell LAST cd'd to (a Bash `cd` inside the workspace persists), not
+       where the session started. `claude --resume <id>` still finds the transcript
+       from a subfolder (its id-scan fallback), but the reopened session is then
+       keyed on the SUBFOLDER: its sidecars (subagents, tool-results) land in a
+       second project folder and its permission scope and project settings shrink
+       to that subfolder. Measured 2026-10-26: a session started at a repo root and
+       resumed in one of its subfolders after a crash wrote every sidecar from then
+       on to a second project folder (<root>-<subfolder>).
+       The journal's own folder names the start directory, so prefer the directory
+       that encodes to it: the tail cwd or an ancestor of it, else the journal's
+       FIRST cwd. Neither matching (or existing) keeps the tail cwd. #>
+    param([string]$JournalPath, [string]$TailCwd)
+
+    if (-not $TailCwd) { return $TailCwd }
+    $folder = Split-Path -Leaf (Split-Path -Parent $JournalPath)
+    if (-not $folder) { return $TailCwd }
+
+    $d = $TailCwd
+    while ($d) {
+        if ((ConvertTo-ClaudeProjectFolderName $d) -eq $folder -and
+            ($d -eq $TailCwd -or (Test-Path -LiteralPath $d))) { return $d }
+        $parent = Split-Path -Parent $d
+        if (-not $parent -or $parent -eq $d) { break }
+        $d = $parent
+    }
+
+    # Not under its start directory at all (cd'd into another tree): the first cwd
+    # the journal recorded is where the session began.
+    $head = ''
+    try {
+        $fs = [IO.File]::Open($JournalPath, [IO.FileMode]::Open, [IO.FileAccess]::Read,
+                              ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+        try {
+            $n    = [int][Math]::Min(262144, $fs.Length)
+            $buf  = [byte[]]::new($n)
+            $read = $fs.Read($buf, 0, $n)
+            $head = [Text.Encoding]::UTF8.GetString($buf, 0, $read)
+        } finally { $fs.Dispose() }
+    } catch { return $TailCwd }
+    foreach ($line in $head.Split("`n")) {
+        if (-not $line.Contains('"cwd":')) { continue }
+        try { $o = $line | ConvertFrom-Json } catch { continue }
+        $first = $o.cwd
+        if ($first -is [string] -and $first) {
+            if ((ConvertTo-ClaudeProjectFolderName $first) -eq $folder -and
+                (Test-Path -LiteralPath $first)) { return $first }
+            break
+        }
+    }
+    $TailCwd
+}
+
 function Get-ClaudeSessionMeta {
     <# Recover a session's metadata from the tail of its journal. Claude rewrites
        the latest ai-title / last-prompt / cwd / timestamp near the end, so a
@@ -486,7 +547,7 @@ function Get-ClaudeSessionMeta {
 
     $title      = $f['aiTitle']
     $lastPrompt = $f['lastPrompt']
-    $cwd        = $f['cwd']
+    $cwd        = Resolve-SessionStartDir -JournalPath $Path -TailCwd $f['cwd']
     $ts         = $f['timestamp']
     $branch     = $f['gitBranch']
 
@@ -807,6 +868,42 @@ if ($SelfTest) {
     if ($k -ne 'bg') { $fails += "kind is not carried through (got '$k', want 'bg')" }
     else { Write-Host '  ok   background agent surfaces as kind=bg' -ForegroundColor DarkGray }
 
+    # START DIRECTORY. A tab reopens where the session STARTED (the directory its
+    # journal folder encodes), not wherever its shell last cd'd to.
+    $start = Join-Path $tmp 'proj-root'
+    $sub   = Join-Path $start 'sub\deeper'
+    $away  = Join-Path $tmp 'elsewhere'
+    foreach ($p in @($sub, $away)) { New-Item -ItemType Directory -Path $p -Force | Out-Null }
+    function New-Journal([string]$folder, [string]$jid, [string[]]$cwds) {
+        $dir = Join-Path (Join-Path $tmp 'projects') $folder
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        $jp = Join-Path $dir "$jid.jsonl"
+        $cwds | ForEach-Object { @{ type = 'user'; cwd = $_; timestamp = '2026-10-26T22:00:00Z' } |
+                                 ConvertTo-Json -Compress } | Set-Content -LiteralPath $jp -Encoding utf8
+        $jp
+    }
+    $startFolder = ConvertTo-ClaudeProjectFolderName $start
+    $dirCases = @(
+        @{ n = 'tail cwd in a SUBFOLDER reopens in the start dir'
+           j = (New-Journal $startFolder 'jid-sub'  @($start, $sub));  want = $start }
+        @{ n = 'tail cwd in ANOTHER tree reopens in the first cwd'
+           j = (New-Journal $startFolder 'jid-away' @($start, $away)); want = $start }
+        @{ n = 'tail cwd = start dir is unchanged'
+           j = (New-Journal $startFolder 'jid-same' @($sub, $start));  want = $start }
+        @{ n = 'folder that encodes nothing found keeps the tail cwd'
+           j = (New-Journal 'no-such-start' 'jid-none' @($start, $sub)); want = $sub }
+    )
+    foreach ($c in $dirCases) {
+        $got = (Get-ClaudeSessionMeta -Path $c.j).Cwd
+        if ($got -ne $c.want) { $fails += "$($c.n) -- expected '$($c.want)', got '$got'" }
+        else { Write-Host ("  ok   " + $c.n) -ForegroundColor DarkGray }
+    }
+    # MUTATION GUARD for the cases above: the tail-only reading they replace must
+    # still pick the subfolder, or the first case proves nothing.
+    $tailOnly = (Get-Content -LiteralPath $dirCases[0].j | Select-Object -Last 1 | ConvertFrom-Json).cwd
+    if ($tailOnly -ne $sub) { $fails += "start-dir mutation guard vacuous: the tail cwd is '$tailOnly', not the subfolder" }
+    else { Write-Host '  ok   mutation guard: tail-only cwd still reads the subfolder' -ForegroundColor DarkGray }
+
     # MUTATION GUARD. The three cases above pass under the OLD, broken comparison
     # too if the writer happens to use Ticks -- so without this the suite could go
     # green while the real defect sat there. Assert that the pre-fix arithmetic
@@ -1116,8 +1213,14 @@ if (-not $files) {
 # Parallel parse: each file is an independent tail-read, and even at ~ms each,
 # $Scan of them serially still adds up on a cold/AV-scanned disk. Order doesn't
 # matter — everything is re-sorted by When below.
-$metaDef = ${function:Get-ClaudeSessionMeta}.ToString()
+# A -Parallel runspace sees none of this script's functions: every helper
+# Get-ClaudeSessionMeta calls must be shipped in too, or the whole scan dies.
+$metaDef   = ${function:Get-ClaudeSessionMeta}.ToString()
+$startDef  = ${function:Resolve-SessionStartDir}.ToString()
+$folderDef = ${function:ConvertTo-ClaudeProjectFolderName}.ToString()
 $sessions = @($files | ForEach-Object -Parallel {
+    ${function:ConvertTo-ClaudeProjectFolderName} = $using:folderDef
+    ${function:Resolve-SessionStartDir} = $using:startDef
     ${function:Get-ClaudeSessionMeta} = $using:metaDef
     Get-ClaudeSessionMeta -Path $_.FullName
 } -ThrottleLimit 8)
