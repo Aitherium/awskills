@@ -16,7 +16,7 @@ An awnix machine has NO PASSWORD. Access is by SSH key only. You might think tha
 
 Two things must be true together or the whole idea breaks:
 - **cloud-init** must run and inject the key
-- **NOPASSWD sudo** must be enabled, so the account can administer the box without a password (the same setup `ec2-user` and `ubuntu` use)
+- **passwordless sudo** must be enabled, so the account can administer the box without a password (the same setup `ec2-user` and `ubuntu` use)
 
 ### What bootc does
 
