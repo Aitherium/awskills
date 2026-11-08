@@ -11,15 +11,5 @@
     "awdk",
     "awknowledge"
   ],
-  "includes": [],
-  "metrics": {
-    "files": {
-      "value": 201,
-      "as_of": "2026-11-08T07:11:35-08:00"
-    },
-    "tests": {
-      "value": 1,
-      "as_of": "2026-11-08T07:11:35-08:00"
-    }
-  }
+  "includes": []
 }
