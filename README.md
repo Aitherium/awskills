@@ -10,6 +10,8 @@
 
 <!-- aither-header:end -->
 
+Use with Hermes: `hermes skills tap add Aitherium/awskills` (then `hermes skills install Aitherium/awskills/<skill>`).
+
 **Learn to run coding agents at program scale — from measured telemetry, not vibes.**
 Free, MIT-licensed. The operating doctrine, plus 40+ battle-tested skills.
 

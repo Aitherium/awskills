@@ -249,7 +249,7 @@ chapters:
       expect: "a version string"
     learned:
       - Immutable means /usr cannot change at runtime; every change is a new image you can diff and roll back.
-      - No password exists on the box; keys only. NOPASSWD sudo is what makes key-only login usable.
+      - No password exists on the box; keys only. Passwordless sudo is what makes key-only login usable.
       - Your agent layers ON TOP (FROM awnix, pip install awdk, add your pack) - the guarantees stay in the base.
 
   - id: 08-many-agents

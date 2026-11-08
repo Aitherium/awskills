@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "awskills",
+  "version": "1.0.0",
+  "description": "Portable agent skills for operating AI agents and the Aither/awdk toolchain. Instructions only: every skill is a SKILL.md that tells the agent a procedure. Some skills tell the agent to run local CLIs (adk, awnode) and fetch from github.com. Nothing is sent to Aitherium unless the user runs those tools against Aitherium's hosted services.",
+  "author": {
+    "name": "Aitherium"
+  },
+  "homepage": "https://aitherium.github.io/awskills/",
+  "repository": "https://github.com/Aitherium/awskills",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "agent-skills",
+    "awdk",
+    "adk",
+    "aither",
+    "interop",
+    "hermes"
+  ]
+}

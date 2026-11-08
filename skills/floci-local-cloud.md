@@ -1,6 +1,7 @@
 ---
 name: floci-local-cloud
-description: Exercise cloud automation (AWS/Azure/GCP/OCI) against local MIT-licensed emulators instead of real accounts — no credentials, no credit burn, no live instance at risk. Load before writing or testing anything that calls a cloud SDK: rental/provisioning code, S3 artifact sync, IAM or secrets paths, or any agent tool that touches a cloud API. Also load when a cloud probe "returns nothing" and you need to know whether that means empty or unreachable.
+description: >-
+  Exercise cloud automation (AWS/Azure/GCP/OCI) against local MIT-licensed emulators instead of real accounts — no credentials, no credit burn, no live instance at risk. Load before writing or testing anything that calls a cloud SDK: rental/provisioning code, S3 artifact sync, IAM or secrets paths, or any agent tool that touches a cloud API. Also load when a cloud probe "returns nothing" and you need to know whether that means empty or unreachable.
 ---
 
 # Floci — any cloud, locally
