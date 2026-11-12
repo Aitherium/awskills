@@ -36,7 +36,7 @@ rotting while every dashboard stays green.
 | | |
 |---|---|
 | **[The path](codex/path/00-welcome.md)** — the Aither World Guide | From "what is an agent?" to a terminal that answers you: install, a local brain, your first agent, packs, your own hardware, many agents on one repo. Mirrored from awknowledge. |
-| **[The twenty-nine laws](codex/README.md#the-twenty-nine-laws)** | Every one was a real failure first. Grouped into Enforcement · Silence · Adoption · Deployment · Trust · Configuration · Scaling. |
+| **[The thirty-one laws](codex/README.md#the-thirty-one-laws)** | Every one was a real failure first. Grouped into Enforcement · Silence · Adoption · Deployment · Trust · Configuration · Scaling. |
 
 The laws in one line each:
 
@@ -67,7 +67,7 @@ The laws in one line each:
 
 **Why this exists.** The failures that cost days do not throw. They return 200, render
 correctly, log nothing, and leave the container healthy — a missing thing is
-indistinguishable from a thing nobody wanted. Twenty-nine laws is what it took to make a
+indistinguishable from a thing nobody wanted. Thirty-one laws is what it took to make a
 system able to notice.
 
 ## 🧠 Start here — code like this
@@ -135,7 +135,7 @@ Then tell your agent: **"use the aither-start skill"**.
 
 ```
 awskills/
-├── codex/      # the Developer Codex — the reading path + the twenty-nine laws
+├── codex/      # the Developer Codex — the reading path + the thirty-one laws
 ├── skills/     # skill files (.md) — install into any agent, see `install-skills`
 ├── scripts/    # standalone scripts you can run directly
 ├── tools/      # MCP tools / CLI utilities
@@ -391,19 +391,24 @@ behind the directory.
 | [`agent-operating-doctrine`](skills/agent-operating-doctrine.md) | The standing instructions, tool order and hook wiring one team runs its coding agents under -- no false blockers, a 150-word report cap, search-then-graph, awgit in a shared worktree, and the PreToolUse/Stop gates that … |
 | [`agents-everywhere`](skills/agents-everywhere.md) | Turn an agent idea into a verified, shareable Aitherium tool across awdk, awsh, MCP, WebMCP, PWA, Codex, Claude Code, and other agent CLIs. |
 | [`aither-agent-notebook`](skills/aither-agent-notebook.md) | Turn 'build X' into a reviewable, re-runnable plan. |
+| [`aither-awdk-quickstart`](skills/aither-awdk-quickstart.md) | Install awdk and run an AI agent on your own machine, then find, inspect and install packs and skills with the adk CLI. |
 | [`aither-code-intelligence`](skills/aither-code-intelligence.md) | Stand up agent code-search, and prove it actually works. |
 | [`aither-codegraph`](skills/aither-codegraph.md) | A call-graph-aware code index your agents can query. |
 | [`aither-discord-agent`](skills/aither-discord-agent.md) | Deploy your awdk agent as a Discord bot (automated onboarding). |
 | [`aither-headroom`](skills/aither-headroom.md) | Cut agent token cost with reversible context compression. |
+| [`aither-interop`](skills/aither-interop.md) | Use Aither from Hermes Agent and other harnesses, in both directions. |
+| [`aither-pack-authoring`](skills/aither-pack-authoring.md) | Build a tool pack for awdk agents: scaffold it with `adk pack new`, write a tool the model can call, then validate, load-test and bundle it with `adk pack validate`, `adk pack dev` and `adk pack build`. |
 | [`aither-powered-coding`](skills/aither-powered-coding.md) | Set up any coding agent (Claude Code, Cursor, Aider, Cline) to use AitherOS as its brain — with automatic model switching, 1272 MCP tools, managed agent dispatch, and transparent failover between DeepSeek/Kimi/local … |
 | [`aither-prospector`](skills/aither-prospector.md) | A semantic file-explorer that tells agents WHERE to look. |
 | [`aither-retrieval`](skills/aither-retrieval.md) | Aither Retrieval — one surface, every modality. |
 | [`aither-start`](skills/aither-start.md) | Zero-to-working-agent on your own machine, for someone who has never written code. |
+| [`aitherbrowser`](skills/aitherbrowser.md) | Give an agent its own browser on your machine: enable AitherBrowser as an addon, confirm it is serving, then drive a real Chromium with the pilot_* tools — open a page with a goal, read what it renders, click and type, … |
 | [`aitherconnect`](skills/aitherconnect.md) | Awconnect — wire your machine, agent, and browser into AitherOS. |
 | [`aithermesh`](skills/aithermesh.md) | Stand up a private mesh and onboard nodes + agents to it. |
 | [`aithernode`](skills/aithernode.md) | Awnode — turn a machine's hardware into something your agents can use. |
 | [`aitherzero`](skills/aitherzero.md) | Provision any machine from one config file and a library of numbered PowerShell automation-scripts. |
 | [`awconnect`](skills/awconnect.md) | Wire your machine, agent, and browser into AitherOS. |
+| [`awdesk`](skills/awdesk.md) | Put the agent on someone's desk: install the Aither desktop companion from its release assets, keep it talking to a daemon, and use decision cards as the place a question actually reaches a person instead of scrolling … |
 | [`awdk`](skills/awdk.md) | Run your own AI agent, on your machine, in three commands. |
 | [`awembed`](skills/awembed.md) | Train an embedding model that knows your corpus. |
 | [`awgit-claude-code`](skills/awgit-claude-code.md) | The awgit workflow for Claude Code / an Aither adk agent — how to work when every commit is captured as a semantic edit-op: what to check after a commit, how to read the attribution ledger, how to teleport deltas to a … |
@@ -421,6 +426,7 @@ behind the directory.
 | [`decision-cards`](skills/decision-cards.md) | Decision Cards — structured asks that actually reach the owner. |
 | [`deer-flow`](skills/deer-flow.md) | Run ByteDance's DeerFlow — a LangGraph-based super-agent harness for autonomous research, coding and content creation with sub-agents, persistent memory and sandboxed execution. |
 | [`dependencies`](skills/dependencies.md) | Manage project dependencies, check for updates, and scan for vulnerabilities |
+| [`deploy-tree`](skills/deploy-tree.md) | A deploy tree is a checkout that containers or a sync lane serve (in AitherOS: C:\AitherOS-Fresh). |
 | [`dgx-spark-deepseek-v4`](skills/dgx-spark-deepseek-v4.md) | A 284B model at ~30 tok/s on one desk machine. |
 | [`do-my-taxes`](skills/do-my-taxes.md) | Do My Taxes — personal tax preparation workflow. |
 | [`docker-network-ops`](skills/docker-network-ops.md) | Diagnose container DNS and networking without fooling yourself. |
@@ -439,6 +445,7 @@ behind the directory.
 | [`graph-rag-agent`](skills/graph-rag-agent.md) | Build a knowledge graph and an agent that owns it. |
 | [`hermes-agent`](skills/hermes-agent.md) | Install Nous Research's Hermes agent and run it on your own model — a self-improving agent with persistent memory, autonomous skill creation, cron automation and multi-platform messaging. |
 | [`hetzner-fleet`](skills/hetzner-fleet.md) | Provision bare metal and VPS directly into your mesh from Hetzner Cloud. |
+| [`i-have-adhd`](skills/i-have-adhd.md) | Shape every answer, report, card and status line for a reader with ADHD: lead with the next action, number the steps, cap what is visible at five, restate state, make wins visible, end with one concrete next step. |
 | [`install-skills`](skills/install-skills.md) | Install this skill pack into whatever agent you already use — Claude Code, OpenClaw, Hermes, Cursor, Goose, Codex, Gemini CLI, or any Agent-Skills-compatible client. |
 | [`lan-latency`](skills/lan-latency.md) | Fix a wired desktop or node that pings its own router at tens of milliseconds with jitter and zero NIC errors. |
 | [`local-image-generation`](skills/local-image-generation.md) | Give an agent the ability to draw — generating images on the machine it is already running on, via ComfyUI, Sana, SD.Next/A1111 or an in-browser model. |
@@ -464,6 +471,7 @@ behind the directory.
 | [`repo-to-website`](skills/repo-to-website.md) | Turn any GitHub repo into a real website on GitHub Pages — a proper landing page with your README's content, live at a URL, instead of a raw README. |
 | [`resume-all`](skills/resume-all.md) | Reopen your killed Claude Code sessions — snapshot before a reboot, restore after, or pick from every project and resume as terminal tabs or tmux windows |
 | [`safe-bulk-rename`](skills/safe-bulk-rename.md) | Rename a token across hundreds or thousands of files in this shared worktree — a package, a directory, a product name — without corrupting load-bearing strings, without committing a peer's in-flight work, and without … |
+| [`salescompel`](skills/salescompel.md) | Build and run SalesCompel — an open-source, Apache-2.0 Salesforce replacement in Go and PostgreSQL — keeping its two database principals separate: migrate as the operator DSN, serve as the runtime DSN, create the first … |
 | [`secretguard`](skills/secretguard.md) | Scan for leaked secrets and purge them from git history |
 | [`security-audit`](skills/security-audit.md) | Perform comprehensive security audits on code, dependencies, and configurations |
 | [`ship-an-app-free`](skills/ship-an-app-free.md) | Take an idea to a working app at a public URL using only free tiers — GitHub Pages for the site, GitHub Actions for the build, and a free serverless backend when the app needs one. |
@@ -473,6 +481,7 @@ behind the directory.
 | [`windows-kernel-leak`](skills/windows-kernel-leak.md) | Diagnose a Windows box where every program starts slowly (hooks time out, a bare `cmd /c exit` takes seconds) by measuring the kernel pool first. |
 | [`worktrees`](skills/worktrees.md) | Make, list and retire agent git worktrees through `awgit wt` — never raw `git worktree add/remove`. |
 | [`xy-charts`](skills/xy-charts.md) | Render data charts (line/scatter/bar/heatmap/pie/histogram/density) to PNG/SVG/JPEG/WebP/PDF or self-contained interactive HTML via the xy engine — for metrics, benchmarks, report figures, dashboard panels, and any … |
+| [`zeroauthy`](skills/zeroauthy.md) | Run zeroauthy — an Apache-2.0, clean-room identity provider you host yourself — from its published container image: generate the TLS material and master key it refuses to start without, bring it up on :8443, create the … |
 <!-- skill-catalog:end -->
 
 ## Standalone tools
@@ -673,7 +682,7 @@ Every repository here is public. Each publishes an `aither-manifest.json` beside
 **awskills** is one of several open repositories cut from the same system. They
 share one set of engineering rules, published as the Developer Codex.
 
-**New here? → [Read the Codex](https://aitherium.github.io/awskills/codex.html)** — eighteen laws for building software
+**New here? → [Read the Codex](https://aitherium.github.io/awskills/codex.html)** — thirty-one laws for building software
 that tells you when it is wrong, plus a four-chapter ramp if you have never
 worked with a coding agent. **Contributing? → [CONTRIBUTING.md](CONTRIBUTING.md)**
 

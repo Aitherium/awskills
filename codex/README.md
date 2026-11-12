@@ -24,7 +24,7 @@ source for both.
 [LAW 1](laws/01-a-rule-nothing-asserts-is-a-suggestion.md). The problem is almost
 never the model.
 
-**You are building the harness itself.** The twenty-nine laws are the whole point.
+**You are building the harness itself.** The thirty-one laws are the whole point.
 Read [Silence](#ii--silence) first — those five are the ones that cost the most
 per incident, because nothing tells you they happened.
 
@@ -68,7 +68,7 @@ should not be the one typing it. You do not type your standards. You install the
 ---
 
 <!-- laws:start GENERATED from the awknowledge laws/*.md. Edit those files, not this list. -->
-## The twenty-nine laws
+## The thirty-one laws
 
 ### I · Enforcement
 *A standard nothing checks is a preference. How a preference becomes a property of the codebase - and why a checker nobody has watched fail is not a gate.*
@@ -126,6 +126,8 @@ should not be the one typing it. You do not type your standards. You install the
 27. [One sanction file, never scattered](laws/27-one-sanction-file-never-scattered.md)
 28. [A guard in one direction is half a guard](laws/28-a-guard-in-one-direction-is-half-a-guard.md)
 29. [Portable is files and presets, never credentials](laws/29-portable-is-files-and-presets-never-credentials.md)
+30. [Lead with the next action](laws/30-lead-with-the-next-action.md)
+31. [A deploy tree is served, never edited](laws/31-a-deploy-tree-is-served-never-edited.md)
 <!-- laws:end -->
 
 ---
