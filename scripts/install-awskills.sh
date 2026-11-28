@@ -51,6 +51,7 @@ tau|folder|$HOME/.tau/skills
 agents-shared|folder|$HOME/.agents/skills
 goose|folder|$HOME/.config/goose/skills
 gemini|folder|$HOME/.gemini/skills
+antigravity|folder|$HOME/.gemini/config/skills
 codex|folder|$HOME/.codex/skills
 cursor|folder|$PWD/.cursor/skills
 opencode|folder|$PWD/.opencode/skills
@@ -68,6 +69,7 @@ detect_root() {
     agents-shared) [ -d "$HOME/.agents" ] ;;
     goose)     [ -d "$HOME/.config/goose" ] ;;
     gemini)    [ -d "$HOME/.gemini" ] ;;
+    antigravity) [ -d "$HOME/.gemini/config" ] || [ -d "$HOME/.gemini/antigravity" ] ;;
     codex)     [ -d "$HOME/.codex" ] ;;
     cursor)    [ -d "$PWD/.cursor" ] ;;
     opencode)  [ -d "$PWD/.opencode" ] ;;

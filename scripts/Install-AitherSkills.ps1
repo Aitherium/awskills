@@ -81,6 +81,7 @@ $targets = @(
     [pscustomobject]@{ Name='agents-shared';      Layout='folder'; Path="$home_\.agents\skills";          DetectRoot="$home_\.agents" }
     [pscustomobject]@{ Name='goose';              Layout='folder'; Path="$home_\.config\goose\skills";    DetectRoot="$home_\.config\goose" }
     [pscustomobject]@{ Name='gemini';             Layout='folder'; Path="$home_\.gemini\skills";          DetectRoot="$home_\.gemini" }
+    [pscustomobject]@{ Name='antigravity';        Layout='folder'; Path="$home_\.gemini\config\skills";   DetectRoot="$home_\.gemini\config" }
     [pscustomobject]@{ Name='codex';              Layout='folder'; Path="$home_\.codex\skills";           DetectRoot="$home_\.codex" }
     [pscustomobject]@{ Name='cursor';             Layout='folder'; Path="$cwd\.cursor\skills";            DetectRoot="$cwd\.cursor" }
     [pscustomobject]@{ Name='opencode';           Layout='folder'; Path="$cwd\.opencode\skills";          DetectRoot="$cwd\.opencode" }

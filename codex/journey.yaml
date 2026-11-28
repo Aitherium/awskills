@@ -244,12 +244,16 @@ chapters:
         optional: true
         expect: "on a machine BOOTED from the image: the running image and the rollback target"
         if_not: "Only meaningful on a box that booted from awnix (the ISO or a cloud image). Inside a container it is absent, and that is expected."
+      - cmd: curl -fsSL https://raw.githubusercontent.com/Aitherium/awnix/main/awnix-aws-ami.sh | sh -s -- --region us-east-1
+        optional: true
+        expect: "an AMI id, its snapshot id, and a ready aws ec2 run-instances command"
+        if_not: "Add --dry-run to see every AWS command without calling AWS. The script needs the aws CLI, credentials, podman or docker, and about 20 GiB free; it creates the bucket and the vmimport role itself."
     done_check:
       cmd: podman run --rm awnix:latest awgit --version
       expect: "a version string"
     learned:
       - Immutable means /usr cannot change at runtime; every change is a new image you can diff and roll back.
-      - No password exists on the box; keys only. Passwordless sudo is what makes key-only login usable.
+      - No password exists on the box; keys only. NOPASSWD sudo is what makes key-only login usable.
       - Your agent layers ON TOP (FROM awnix, pip install awdk, add your pack) - the guarantees stay in the base.
 
   - id: 08-many-agents
@@ -374,6 +378,38 @@ chapters:
       - Claude Code reads settings from several layers; a setting in a layer that does not honour it silently does not exist.
       - Permission mode belongs in your user settings, never in a repository other people clone.
       - Presets and files travel between machines; credentials never do.
+
+  - id: 12-windows-goodbye
+    title: Put awnix on a Windows PC
+    blurb: One line in PowerShell installs awnix as a WSL2 distro - checked download, no reboot, no admin, one flag to remove it.
+    persona: stranger
+    minutes: 15
+    requires: [00-welcome]
+    bricks: [awnix]
+    installs: []
+    do:
+      - cmd: irm https://goodbyewindows.sh/WindowsGoodbye.ps1 -OutFile WindowsGoodbye.ps1
+        optional: true
+        expect: "WindowsGoodbye.ps1 in the current folder - read it before you run it"
+        if_not: "Check the machine is online; the same script is in github.com/Aitherium/windowsgoodbye."
+      - cmd: powershell -ExecutionPolicy Bypass -File .\WindowsGoodbye.ps1 -DryRun
+        optional: true
+        expect: "the release, its size, and a DRY RUN line - nothing downloaded or imported"
+        if_not: "If it says WSL is not installed, run `wsl --install --no-distribution` once in an admin PowerShell, reboot if asked, and try again."
+      - cmd: irm goodbyewindows.sh | iex
+        expect: "every part passes its checksum, then: awnix is installed, and a Linux prompt"
+        if_not: "A checksum failure installs nothing - run it again. An import error is printed verbatim; `-Uninstall` clears a half-started distro."
+      - cmd: powershell -ExecutionPolicy Bypass -File .\WindowsGoodbye.ps1 -Uninstall
+        optional: true
+        expect: "Removed 'awnix'. Windows is unchanged."
+        if_not: "It deletes the distro's disk; copy out anything you made inside it first."
+    done_check:
+      cmd: wsl -d awnix -- cat /etc/os-release
+      expect: "NAME=\"awnix\" and PRETTY_NAME=\"awnix (built on CentOS Stream 9)\""
+    learned:
+      - Windows Goodbye installs awnix BESIDE Windows as a WSL2 distro; Windows and how the PC boots are untouched.
+      - The filesystem is flattened once on Linux in CI and booted there before release; your PC only downloads it and checks SHA-256.
+      - irm ... | iex takes no options; download the script to pass -DryRun or -Uninstall.
 
 reference:
   man_pages:

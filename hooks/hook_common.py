@@ -109,13 +109,36 @@ def run_hook(decide) -> None:
 # ------------------------------------------------------------------- transcript
 
 
-def load_transcript(path: str | None) -> list[dict[str, Any]]:
+# A Stop hook judges the CURRENT TURN, which sits at the end of the file. Parsing a
+# whole transcript costs about five times its size in memory: a 1.95 GB session
+# transcript made every hookd worker that ran a Stop hook hold 9.5 GB, ten at a time,
+# and took the host from 81 % to 96 % commit at each turn end (measured 2026-11-10).
+# So only the tail is read. AITHER_HOOK_TRANSCRIPT_TAIL_MB overrides; 0 reads it all.
+TRANSCRIPT_TAIL_MB = 48
+
+
+def _tail_bytes() -> int:
+    raw = os.environ.get("AITHER_HOOK_TRANSCRIPT_TAIL_MB", "")
+    try:
+        mb = float(raw) if raw.strip() else float(TRANSCRIPT_TAIL_MB)
+    except ValueError:
+        mb = float(TRANSCRIPT_TAIL_MB)
+    return int(mb * 1024 * 1024) if mb > 0 else 0
+
+
+def load_transcript(path: str | None, tail_bytes: int | None = None) -> list[dict[str, Any]]:
+    """The transcript's entries, oldest first; only its last `tail_bytes` when larger."""
     if not path or not os.path.isfile(path):
         return []
+    limit = _tail_bytes() if tail_bytes is None else max(0, int(tail_bytes))
     entries: list[dict[str, Any]] = []
-    with open(path, "r", encoding="utf-8", errors="replace") as fh:
-        for line in fh:
-            line = line.strip()
+    with open(path, "rb") as fh:
+        size = os.fstat(fh.fileno()).st_size
+        if limit and size > limit:
+            fh.seek(size - limit)
+            fh.readline()  # the seek lands mid-line: drop that partial entry
+        for raw in fh:
+            line = raw.decode("utf-8", errors="replace").strip()
             if not line:
                 continue
             try:
