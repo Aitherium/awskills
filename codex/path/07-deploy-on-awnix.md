@@ -16,7 +16,7 @@ An awnix machine has NO PASSWORD. Access is by SSH key only. You might think tha
 
 Two things must be true together or the whole idea breaks:
 - **cloud-init** must run and inject the key
-- **passwordless sudo** must be enabled, so the account can administer the box without a password (the same setup `ec2-user` and `ubuntu` use)
+- **NOPASSWD sudo** must be enabled, so the account can administer the box without a password (the same setup `ec2-user` and `ubuntu` use)
 
 ### What bootc does
 
@@ -85,6 +85,20 @@ bootc status
 You should see: information about the image, only if you are booted from an awnix machine (a cloud instance or an ISO you burned).
 
 If the command is not found: you are running inside a container, not booted from the image. This is expected and fine. The `bootc` command only exists on a machine that BOOTED the image; inside a `podman run` container it is absent.
+
+**5. (Optional) Put it on AWS as an AMI**
+
+The public image can become an Amazon Machine Image in your own AWS account, with your own credentials:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Aitherium/awnix/main/awnix-aws-ami.sh | sh -s -- --region us-east-1
+```
+
+It creates or reuses the S3 bucket and the `vmimport` service role the EC2 import needs, runs `bootc-image-builder --type ami` against the public ghcr.io image, and prints the AMI id plus a ready `aws ec2 run-instances` command. The security group it makes opens only port 22, plus 9443 if you pass `--console`.
+
+You should see: the AMI id, its snapshot id, and a launch command.
+
+If you do not want to spend anything yet: add `--dry-run`. It prints every AWS command and the exact bootc-image-builder command line without calling AWS or running a container.
 
 Done: Run the verification command again to confirm.
 
